@@ -1,0 +1,104 @@
+# =============================================================================
+# NYC Taxi Data Engineering Project — .gitignore
+# =============================================================================
+
+# ─────────────────────────────────────────
+# Python
+# ─────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+*.so
+
+# ─────────────────────────────────────────
+# Virtual Environment
+# ─────────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+
+# ─────────────────────────────────────────
+# Jupyter Notebooks
+# ─────────────────────────────────────────
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# ─────────────────────────────────────────
+# Data Files (KHÔNG commit data lên git)
+# ─────────────────────────────────────────
+data/raw/
+data/processed/
+*.parquet
+*.csv
+*.json.gz
+
+# ─────────────────────────────────────────
+# Credentials & Secrets (CRITICAL — KHÔNG BAO GIỜ COMMIT)
+# ─────────────────────────────────────────
+.env
+.env.*
+*.env
+warehouse/credentials/
+*service_account*.json
+*-credentials.json
+*_key.json
+gcp_key*.json
+
+# ─────────────────────────────────────────
+# Logs
+# ─────────────────────────────────────────
+logs/
+*.log
+spark-warehouse/
+derby.log
+
+# ─────────────────────────────────────────
+# IDE & Editor
+# ─────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ─────────────────────────────────────────
+# Spark & Hadoop (Windows artifacts)
+# ─────────────────────────────────────────
+metastore_db/
+spark-warehouse/
+hadoop/tmp/
+
+# ─────────────────────────────────────────
+# dbt
+# ─────────────────────────────────────────
+dbt/target/
+dbt/dbt_packages/
+dbt/.dbt/
+dbt/logs/
+
+# ─────────────────────────────────────────
+# Airflow
+# ─────────────────────────────────────────
+airflow/logs/
+airflow/airflow.db
+airflow/airflow.cfg
+
+# ─────────────────────────────────────────
+# Scratch / Temp
+# ─────────────────────────────────────────
+scratch_*.py
+tmp/
+temp/
+*.tmp
