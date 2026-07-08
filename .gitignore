@@ -43,6 +43,11 @@ data/processed/
 *.json.gz
 
 # ─────────────────────────────────────────
+# AI Agent Context (local-only, không public)
+# ─────────────────────────────────────────
+.agent/
+
+# ─────────────────────────────────────────
 # Credentials & Secrets (CRITICAL — KHÔNG BAO GIỜ COMMIT)
 # ─────────────────────────────────────────
 .env
@@ -53,6 +58,16 @@ warehouse/credentials/
 *-credentials.json
 *_key.json
 gcp_key*.json
+# API keys
+*api_key*
+*apikey*
+*secret*
+*token*.json
+*token*.txt
+# Personal data
+*.pem
+*.p12
+*.pfx
 
 # ─────────────────────────────────────────
 # Logs
