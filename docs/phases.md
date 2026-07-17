@@ -5,8 +5,8 @@
 | Phase | Tên | Trạng thái | Deliverables |
 |---|---|---|---|
 | **1** | Data Understanding | ✅ Completed | schema, profiling, dictionary |
-| **2** | Spark ETL | ⏳ Planned | etl scripts, processed data |
-| **3** | Warehouse | ⏳ Planned | PostgreSQL schema, loaded data |
+| **2** | Spark ETL | ✅ Completed | etl scripts, processed data |
+| **3** | Warehouse | ✅ Completed | BigQuery schema, loaded data |
 | **4** | dbt Transform | ⏳ Planned | dbt models, tests, docs |
 | **5** | Dashboard | ⏳ Planned | Metabase dashboards |
 | **6** | Portfolio | ⏳ Planned | README, Docker, demo |
@@ -44,23 +44,23 @@
 
 ---
 
-## Phase 2: Spark ETL ⏳
+## Phase 2: Spark ETL ✅
 
 **Mục tiêu:** Xây dựng ETL pipeline để clean và transform data.
 
 ### Tasks
 
-- [ ] Tạo `spark/config.py`
-- [ ] Tạo `spark/utils/logger.py`
-- [ ] Tạo `spark/etl/extract.py` — đọc parquet
-- [ ] Tạo `spark/etl/validate.py` — kiểm tra chất lượng
-- [ ] Tạo `spark/etl/transform.py` — clean + derive columns
-- [ ] Tạo `spark/etl/load.py` — ghi ra processed parquet
-- [ ] Tạo `spark/etl/main.py` — orchestrate ETL job
-- [ ] Xử lý null values
-- [ ] Lọc outlier (trip_distance, fare_amount)
-- [ ] Thêm derived columns (duration, tip_ratio, pickup_date)
-- [ ] Viết processed parquet vào `data/processed/`
+- [x] Tạo `spark/config.py`
+- [x] Tạo `spark/utils/logger.py`
+- [x] Tạo `spark/etl/extract.py` — đọc parquet
+- [x] Tạo `spark/etl/validate.py` — kiểm tra chất lượng
+- [x] Tạo `spark/etl/transform.py` — clean + derive columns
+- [x] Tạo `spark/etl/load.py` — ghi ra processed parquet
+- [x] Tạo `spark/etl/main.py` — orchestrate ETL job
+- [x] Xử lý null values
+- [x] Lọc outlier (trip_distance, fare_amount)
+- [x] Thêm derived columns (duration, tip_ratio, pickup_date)
+- [x] Viết processed parquet vào `data/processed/`
 
 ### Deliverables
 
@@ -72,26 +72,26 @@
 
 ---
 
-## Phase 3: Warehouse ⏳
+## Phase 3: Warehouse ✅
 
 **Mục tiêu:** Setup Google BigQuery Sandbox và load dữ liệu từ Spark lên BigQuery theo Star Schema.
 
 ### Tasks
 
-- [ ] Tạo GCP Account và kích hoạt BigQuery Sandbox (miễn phí)
-- [ ] Tạo GCP Project `nyc-taxi-dw` và Dataset tương ứng
-- [ ] Cấu hình GCP Service Account & tải file JSON key để xác thực
-- [ ] Viết Schema/DDL cho FACT_TRIP và các bảng chiều (DIM_*) trên BigQuery
-- [ ] Cấu hình Spark BigQuery Connector trong PySpark job
-- [ ] Viết `spark/etl/load_warehouse.py` — ghi dữ liệu từ processed parquet lên BigQuery tables
-- [ ] Populate dimension tables và load Fact table
+- [x] Tạo GCP Account và kích hoạt BigQuery Sandbox (miễn phí)
+- [x] Tạo GCP Project `new-york-taxi-dw` và Dataset tương ứng
+- [x] Cấu hình GCP Service Account hoặc Application Default Credentials (ADC) xác thực không cần key
+- [x] Viết Schema/DDL cho FACT_TRIP và các bảng chiều (DIM_*) trên BigQuery
+- [x] Cấu hình Spark BigQuery Connector trong PySpark job
+- [x] Viết `spark/etl/load_warehouse.py` — ghi dữ liệu từ processed parquet lên BigQuery tables
+- [x] Populate dimension tables và load Fact table (hoặc hướng dẫn nạp Sandbox thủ công qua Web UI)
 
 ### Deliverables
 
 | File | Mô tả |
 |---|---|
-| `warehouse/schemas/` | DDL schema và định nghĩa các bảng trên BigQuery |
-| `warehouse/credentials/` | Hướng dẫn cấu hình Service Account JSON key (được ignore trên git) |
+| `warehouse/ddl/` | DDL schema và định nghĩa các bảng trên BigQuery |
+| `warehouse/credentials/` | Hướng dẫn cấu hình xác thực (được ignore trên git) |
 
 ---
 

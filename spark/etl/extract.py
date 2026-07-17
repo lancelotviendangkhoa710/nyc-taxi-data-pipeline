@@ -32,13 +32,21 @@ def get_spark_session() -> SparkSession:
 
 def extract_data(spark: SparkSession, raw_dir_path: str, file_pattern: str) -> DataFrame:
   import os
+  import glob
   from pyspark.sql.utils import AnalysisException
   
   full_path = os.path.join(raw_dir_path, file_pattern)
-  logger.info(f"Đang đọc dữ liệu: {full_path}")
+  logger.info(f"Đang tìm kiếm các file khớp với: {full_path}")
   
   try:
-    df = spark.read.parquet(full_path)
+    # Resolve wildcards in Python first to avoid Hadoop's globPath NativeIO error on Windows
+    resolved_paths = glob.glob(full_path)
+    if not resolved_paths:
+      logger.error(f"Không tìm thấy file nào khớp với: {full_path}")
+      raise FileNotFoundError(f"Không tìm thấy file nào khớp với: {full_path}")
+      
+    logger.info(f"Tìm thấy các file: {resolved_paths}. Đang đọc dữ liệu...")
+    df = spark.read.parquet(*resolved_paths)
     
     # Một số trường hợp file tồn tại nhưng rỗng hoàn toàn (0 bytes) hoặc không có cột nào,
     # Spark vẫn đọc được nhưng DataFrame không có schema hoặc trống trơn.

@@ -55,11 +55,17 @@ SPARK_CONFIGS = {
     "spark.sql.shuffle.partitions": "8",
     "spark.driver.memory": "4g",
     "spark.sql.adaptive.enabled": "true",
+    # BigQuery Spark Connector tương thích với Scala 2.13 và Spark 4.x
+    "spark.jars.packages": "com.google.cloud.spark:spark-bigquery-with-dependencies_2.13:0.44.2",
 }
 
 # ─────────────────────────────────────────
-# 5. POSTGRESQL WAREHOUSE
+# 5. GOOGLE BIGQUERY & POSTGRESQL WAREHOUSE
 # ─────────────────────────────────────────
+BQ_PROJECT           = os.getenv("BQ_PROJECT", "new-york-taxi-dw")
+BQ_DATASET           = os.getenv("BQ_DATASET", "nyc_taxi_dw")
+GCP_CREDENTIALS_PATH = os.getenv("GCP_CREDENTIALS_PATH", str(ROOT_DIR / "warehouse" / "credentials" / "service_account.json"))
+
 PG_HOST     = os.getenv("PG_HOST", "localhost")
 PG_PORT     = os.getenv("PG_PORT", "5432")
 PG_DATABASE = os.getenv("PG_DATABASE", "nyc_taxi_dw")
