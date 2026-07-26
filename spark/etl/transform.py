@@ -18,7 +18,9 @@ def handle_null_values(df: DataFrame) -> DataFrame:
         "Airport_fee": 0.0,
         "cbd_congestion_fee": 0.0
     }
-    df_cleaned = df.fillna(default_values)
+    # Chỉ fill các cột thực sự tồn tại trong DataFrame
+    existing = {k: v for k, v in default_values.items() if k in df.columns}
+    df_cleaned = df.fillna(existing)
     return df_cleaned
 
 
@@ -36,7 +38,7 @@ def filter_outliers(df: DataFrame) -> DataFrame:
     return df_filtered
 
 def add_derived_columns(df: DataFrame) -> DataFrame:
-    logger.info("Đang tạo các cột phái sinh (derived columns)...")
+    logger.info("Đang tạo các cột phát sinh (derived columns)...")
 
     df_transformed = df.withColumn(
         "trip_duration_min",

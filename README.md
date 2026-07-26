@@ -1,6 +1,6 @@
 # NYC Yellow Taxi Data Engineering Platform
 
-A production-grade data engineering platform for analyzing NYC Yellow Taxi trip data using Apache Spark, dbt, and Google BigQuery. This project demonstrates modern data lakehouse architecture with batch processing, data transformations, and business intelligence dashboards.
+A production-grade data engineering platform for analyzing NYC Yellow Taxi trip data using Apache Spark, dbt, and PostgreSQL. This project demonstrates modern data lakehouse architecture with batch processing, data transformations, and business intelligence dashboards.
 
 ## 🎯 Project Overview
 
@@ -14,7 +14,7 @@ This platform ingests, processes, and analyzes millions of NYC taxi trip records
 **Tech Stack:**
 - **Data Ingestion**: NYC TLC Parquet Files
 - **Processing**: Apache Spark (PySpark) with local execution
-- **Storage**: Google BigQuery (Sandbox)
+- **Storage**: PostgreSQL (Supabase or self-hosted)
 - **Transformation**: dbt (data build tool)
 - **Orchestration**: Apache Airflow
 - **Visualization**: Metabase
@@ -32,8 +32,8 @@ NYC TLC Data (Parquet)
 [Raw Layer] - data/raw/*.parquet
     ↓ (PySpark ETL)
 [Processed Layer] - data/processed/*.parquet
-    ↓ (GCS/BigQuery API)
-[Warehouse Layer] - BigQuery (Star Schema)
+    ↓ (PostgreSQL JDBC)
+[Warehouse Layer] - PostgreSQL (Star Schema)
     ↓ (dbt transformations)
 [Transform Layer] - Staging → Intermediate → Mart
     ↓
@@ -47,7 +47,7 @@ download_data
     ↓
 run_spark_etl (cleaning, validation, enrichment)
     ↓
-load_to_postgres (or BigQuery)
+load_to_postgres (PostgreSQL warehouse)
     ↓
 run_dbt_models (dimensional modeling)
     ↓
@@ -68,8 +68,9 @@ refresh_dashboard (analytics dashboards)
 │       ├── main.py         # ETL orchestration entry point
 │       ├── pipeline.py     # Core transformation logic
 │       ├── load.py         # Data loading utilities
-│       └── load_warehouse.py  # BigQuery/PostgreSQL loading
+│       └── load_warehouse.py  # PostgreSQL loading
 ├── warehouse/
+│   ├── credentials/        # Database connection credentials
 │   └── ddl/                # Data warehouse schema definitions
 │       ├── fact_trip.sql   # Trip fact table
 │       ├── dim_vendor.sql  # Vendor dimension
@@ -115,7 +116,7 @@ refresh_dashboard (analytics dashboards)
 
 - Python 3.8+
 - Apache Spark 3.x
-- Google Cloud SDK (for BigQuery access)
+- PostgreSQL 12+ (or Supabase account)
 - Docker & Docker Compose (for containerized deployment)
 - dbt 1.5+
 - Apache Airflow 2.x
@@ -130,12 +131,17 @@ refresh_dashboard (analytics dashboards)
 
 2. **Install Python dependencies:**
    ```bash
-   pip install pyspark pandas numpy dbt-bigquery apache-airflow
+   pip install pyspark pandas numpy dbt-postgres apache-airflow psycopg2-binary
    ```
 
-3. **Configure Google Cloud credentials:**
+3. **Configure PostgreSQL credentials:**
    ```bash
-   export GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account-key.json
+   # Update .env file with PostgreSQL connection details
+   export PG_HOST=your-supabase-host.supabase.co
+   export PG_PORT=5432
+   export PG_DATABASE=postgres
+   export PG_USER=postgres
+   export PG_PASSWORD=your-password
    ```
 
 4. **Run the ETL pipeline locally:**
@@ -165,40 +171,26 @@ This starts:
 - Apache Airflow (localhost:8080)
 - Metabase (localhost:3000)
 - dbt transformation container
-- BigQuery connector
+- PostgreSQL connector
 
 ---
 
 ## 🔧 Configuration
 
-### Spark Configuration (`spark/config.py`)
 
-```python
-SPARK_MASTER = "local[*]"  # Local execution using all cores
-WAREHOUSE_PATH = "data/processed/"
-WAREHOUSE_FORMAT = "parquet"
-```
 
-### Environment Variables
-
-Create `.env` file in project root:
-
-```env
-GCP_PROJECT_ID=your-gcp-project
-BIGQUERY_DATASET=taxi_data
-AIRFLOW_HOME=./airflow
-DBT_PROFILES_DIR=./dbt
-```
 
 ### Warehouse Schema
 
-**Star Schema Design:**
+PostgreSQL **Star Schema Design:**
 - **fact_trip**: Central fact table with trip metrics
 - **dim_vendor**: Taxi service providers
 - **dim_time**: Time dimension (hour, date, month, quarter, year)
 - **dim_location**: NYC taxi zones with geography
 - **dim_payment**: Payment methods
 - **dim_rate**: Fare code categories
+
+See `warehouse/ddl/` for database schema definition files.
 
 ---
 
@@ -220,12 +212,13 @@ DBT_PROFILES_DIR=./dbt
 
 **Input:** Processed parquet files
 **Processing:**
+- PostgreSQL table creation via Spark JDBC
 - Fact table aggregations
 - Dimension table lookups
 - Surrogate key generation
 - SCD Type 1 updates
 
-**Output:** BigQuery star schema tables
+**Output:** PostgreSQL star schema tables
 
 ### Transform Phase 3: dbt Models
 
@@ -236,14 +229,14 @@ DBT_PROFILES_DIR=./dbt
 ```sql
 -- Example: Revenue by zone
 SELECT 
-    dl.zone_name,
+    dl.zone,
     DATE(ft.pickup_date) as trip_date,
     COUNT(*) as total_trips,
     SUM(ft.total_amount) as total_revenue,
     AVG(ft.tip_amount) as avg_tip
 FROM fact_trip ft
-JOIN dim_location dl ON ft.pu_location_id = dl.location_id
-GROUP BY dl.zone_name, trip_date
+JOIN dim_location dl ON ft.pickup_location_key = dl.location_key
+GROUP BY dl.zone, trip_date
 ```
 
 ---
@@ -313,7 +306,6 @@ invalid_count = df.count() - valid_trips.count()
 - **[Architecture Guide](docs/architecture.md)** - System design and data flow
 - **[Data Dictionary](docs/data_dictionary.md)** - Field definitions and transformations
 - **[Data Model](docs/data_model.md)** - Star schema and dimensional design
-- **[Project Phases](docs/phases.md)** - Development roadmap
 
 ---
 
@@ -356,28 +348,9 @@ export SPARK_EXECUTOR_MEMORY=4g
 python spark/etl/main.py
 ```
 
-### BigQuery Authentication
+### PostgreSQL Connection Issues
 
-```bash
-gcloud auth application-default login
-gcloud config set project YOUR_GCP_PROJECT
-```
 
-### dbt Connection Errors
-
-Verify `~/.dbt/profiles.yml`:
-```yaml
-nyc_taxi:
-  target: dev
-  outputs:
-    dev:
-      type: bigquery
-      project: YOUR_GCP_PROJECT
-      dataset: taxi_data
-      location: US
-      method: service-account
-      keyfile: /path/to/service-account-key.json
-```
 
 ---
 
@@ -391,29 +364,6 @@ nyc_taxi:
 
 ---
 
-## 📄 License
+##  Author
 
-This project is licensed under the MIT License - see LICENSE file for details.
-
----
-
-## 👤 Author
-
-**Khoa Lance** - [GitHub](https://github.com/lancelotviendangkhoa710)
-
-## 🤝 Contributing
-
-Contributions are welcome! Please follow the development workflow and ensure all tests pass before submitting pull requests.
-
----
-
-## 📞 Support
-
-For issues, questions, or suggestions:
-- Open an issue on [GitHub Issues](https://github.com/lancelotviendangkhoa710/nyc-taxi-de-project/issues)
-- Check existing documentation in `docs/`
-- Review project code intelligence with GitNexus
-
----
-
-**Last Updated:** July 2026
+**Khoa Lancelot** - [GitHub](https://github.com/lancelotviendangkhoa710)

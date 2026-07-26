@@ -6,19 +6,7 @@ from spark.utils.logger import get_logger
 logger = get_logger("spark.etl.load")
 
 def load_data(df: DataFrame, output_path: str = None, partition_col: str = "pickup_date") -> None:
-    """
-    Lưu DataFrame đã xử lý ra thư mục đích dưới định dạng Parquet,
-    được phân vùng (partitioned) theo cột quy định.
-    
-    Parameters:
-    -----------
-    df : DataFrame
-        Spark DataFrame chứa dữ liệu đã transform và sẵn sàng ghi.
-    output_path : str, optional
-        Đường dẫn thư mục để ghi dữ liệu. Nếu None, sẽ dùng PROCESSED_DIR / "yellow_taxi".
-    partition_col : str, optional
-        Cột được sử dụng để phân vùng (default: "pickup_date").
-    """
+
     if output_path is None:
         output_path = str(PROCESSED_DIR / "yellow_taxi")
         

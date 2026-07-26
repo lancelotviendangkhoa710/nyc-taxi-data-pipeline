@@ -3,57 +3,67 @@ import urllib.request
 from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql import functions as F
 from spark.config import (
-    BQ_PROJECT,
-    BQ_DATASET,
-    GCP_CREDENTIALS_PATH,
+    PG_HOST,
+    PG_PORT,
+    PG_DATABASE,
+    PG_USER,
+    PG_PASSWORD,
+    PG_JDBC_URL,
     RAW_DIR
 )
 from spark.utils.logger import get_logger
 
-# Khởi tạo logger cho module loading
 logger = get_logger("spark.etl.load_warehouse")
 
 class YellowTaxiWarehouseLoader:
-    """
-    Class chịu trách nhiệm xử lý và ghi dữ liệu từ tầng Processed 
-    lên các bảng trong Google BigQuery Warehouse (Star Schema).
-    """
     def __init__(self, spark_session: SparkSession):
         self.spark = spark_session
+        self.jdbc_url = PG_JDBC_URL
+        self.properties = {
+            "user": PG_USER,
+            "password": PG_PASSWORD,
+            "driver": "org.postgresql.Driver"
+        }
         
-        # Kiểm tra sự tồn tại của file GCP key. Nếu không có, tự động fallback về ADC
-        if os.path.exists(GCP_CREDENTIALS_PATH):
-            logger.info(f"Sử dụng file JSON Key để xác thực: {GCP_CREDENTIALS_PATH}")
-        else:
-            logger.info("Không tìm thấy file JSON Key. Sử dụng Application Default Credentials (ADC) từ gcloud CLI.")
-            
-        logger.info(f"Khởi tạo Warehouse Loader thành công với Project: {BQ_PROJECT}, Dataset: {BQ_DATASET}")
+        logger.info(f"Khởi tạo Warehouse Loader thành công")
+        logger.info(f"PostgreSQL Connection: {PG_HOST}:{PG_PORT}/{PG_DATABASE}")
         
-    def _write_to_bigquery(self, df: DataFrame, table_name: str, mode: str = "append") -> None:
+    def _write_to_postgres(self, df: DataFrame, table_name: str, mode: str = "append") -> None:
         """
-        Hàm helper ghi DataFrame lên BigQuery sử dụng Spark BigQuery Connector.
-        Sử dụng writeMethod='direct' để ghi trực tiếp qua BigQuery Storage Write API.
+        Hàm helper ghi DataFrame lên PostgreSQL sử dụng JDBC.
+        
+        Args:
+            df: DataFrame để ghi
+            table_name: Tên bảng PostgreSQL
+            mode: "append", "overwrite", "ignore", hoặc "error"
         """
-        logger.info(f"Đang ghi dữ liệu lên bảng BigQuery: {BQ_DATASET}.{table_name} (Mode: {mode})...")
+        logger.info(f"Đang ghi dữ liệu lên bảng PostgreSQL: {table_name} (Mode: {mode})...")
         try:
-            # Tạo writer cơ bản với các cấu hình GCP Project và Dataset
-            writer = (
-                df.write.format("bigquery")
-                .option("parentProject", BQ_PROJECT)
-                .option("project", BQ_PROJECT)
-                .option("dataset", BQ_DATASET)
-                .option("table", table_name)
-                .option("writeMethod", "direct")
-            )
-            
-            # Chỉ nạp credentialsFile nếu file JSON thực sự tồn tại
-            # Nếu không có, Spark BigQuery Connector sẽ tự tìm ADC trong hệ thống
-            if os.path.exists(GCP_CREDENTIALS_PATH):
-                writer = writer.option("credentialsFile", GCP_CREDENTIALS_PATH)
+            writer = df.write \
+                .format("jdbc") \
+                .option("url", self.jdbc_url) \
+                .option("dbtable", table_name) \
+                .option("user", self.properties["user"]) \
+                .option("password", self.properties["password"]) \
+                .option("driver", self.properties["driver"])
+            # Xử lý overwrite thủ công để tránh lỗi FK constraint
+            if mode == "overwrite":
+                import psycopg2
+                from spark.config import PG_HOST, PG_PORT, PG_DATABASE, PG_USER, PG_PASSWORD
+                conn = psycopg2.connect(
+                    host=PG_HOST, port=PG_PORT, database=PG_DATABASE, 
+                    user=PG_USER, password=PG_PASSWORD
+                )
+                cur = conn.cursor()
+                cur.execute(f"TRUNCATE TABLE {table_name} CASCADE")
+                conn.commit()
+                cur.close()
+                conn.close()
+                mode = "append"
             writer.mode(mode).save()
             logger.info(f"Ghi thành công bảng: {table_name}")
         except Exception as e:
-            logger.error(f"Lỗi khi ghi dữ liệu lên BigQuery bảng {table_name}: {e}")
+            logger.error(f"Lỗi khi ghi dữ liệu lên PostgreSQL bảng {table_name}: {e}")
             raise e
 
     def load_dim_vendor(self) -> None:
@@ -64,12 +74,11 @@ class YellowTaxiWarehouseLoader:
             (2, "Curb Mobility")
         ]
         df_vendor = self.spark.createDataFrame(vendor_data, ["vendor_key", "vendor_name"])
-        # Cast đúng kiểu dữ liệu
         df_vendor = df_vendor.select(
             F.col("vendor_key").cast("long"),
             F.col("vendor_name").cast("string")
         )
-        self._write_to_bigquery(df_vendor, "dim_vendor", mode="overwrite")
+        self._write_to_postgres(df_vendor, "dim_vendor", mode="overwrite")
 
     def load_dim_payment(self) -> None:
         """Tạo và load bảng chiều tĩnh DIM_PAYMENT"""
@@ -87,7 +96,7 @@ class YellowTaxiWarehouseLoader:
             F.col("payment_key").cast("long"),
             F.col("payment_name").cast("string")
         )
-        self._write_to_bigquery(df_payment, "dim_payment", mode="overwrite")
+        self._write_to_postgres(df_payment, "dim_payment", mode="overwrite")
 
     def load_dim_rate(self) -> None:
         """Tạo và load bảng chiều tĩnh DIM_RATE"""
@@ -105,10 +114,10 @@ class YellowTaxiWarehouseLoader:
             F.col("rate_key").cast("long"),
             F.col("rate_name").cast("string")
         )
-        self._write_to_bigquery(df_rate, "dim_rate", mode="overwrite")
+        self._write_to_postgres(df_rate, "dim_rate", mode="overwrite")
 
     def load_dim_location(self) -> None:
-        """Tải dữ liệu zones lookup từ S3 TLC và load lên DIM_LOCATION"""
+        """Tải dữ liệu zones lookup từ GitHub và load lên DIM_LOCATION"""
         logger.info("Đang xử lý dữ liệu chiều DIM_LOCATION...")
         csv_path = os.path.join(str(RAW_DIR), "taxi_zone_lookup.csv")
         
@@ -117,7 +126,6 @@ class YellowTaxiWarehouseLoader:
             s3_url = "https://github.com/DataTalksClub/nyc-tlc-data/releases/download/misc/taxi_zone_lookup.csv"
             logger.info(f"Đang tải file zone lookup: {s3_url}")
             try:
-                # Cấu hình User-Agent để tránh bị block
                 req = urllib.request.Request(
                     s3_url, 
                     headers={'User-Agent': 'Mozilla/5.0'}
@@ -139,7 +147,7 @@ class YellowTaxiWarehouseLoader:
             F.col("Borough").cast("string").alias("borough"),
             F.col("service_zone").cast("string").alias("service_zone")
         )
-        self._write_to_bigquery(df_location, "dim_location", mode="overwrite")
+        self._write_to_postgres(df_location, "dim_location", mode="overwrite")
 
     def load_dim_time(self, df_processed: DataFrame) -> None:
         """Trích xuất và tính toán chiều DIM_TIME từ dữ liệu chuyến đi thực tế"""
@@ -174,7 +182,7 @@ class YellowTaxiWarehouseLoader:
             F.dayofmonth("datetime").cast("long")
         ).withColumn(
             "day_of_week",
-            F.date_format("datetime", "u").cast("long") # 1=Thứ 2, 7=Chủ nhật
+            F.dayofweek("datetime").cast("long") # 1=Chủ nhật, 7=Thứ 7
         ).withColumn(
             "day_name",
             F.date_format("datetime", "EEEE")
@@ -183,7 +191,7 @@ class YellowTaxiWarehouseLoader:
             F.hour("datetime").cast("long")
         ).withColumn(
             "is_weekend",
-            F.col("day_of_week").isin(6, 7).cast("boolean")
+            F.col("day_of_week").isin(1, 7).cast("boolean")
         ).withColumn(
             "is_peak_hour",
             ((~F.col("is_weekend")) & (F.col("hour").isin(7, 8, 9, 16, 17, 18, 19))).cast("boolean")
@@ -192,12 +200,11 @@ class YellowTaxiWarehouseLoader:
             F.quarter("datetime").cast("long")
         )
         
-        # Lưu vào BigQuery, sử dụng overwrite hoặc append tùy theo cấu trúc dữ liệu lịch sử
-        # Overwrite là an toàn và idempotent cho dimension này
-        self._write_to_bigquery(df_time, "dim_time", mode="overwrite")
+        # Lưu vào PostgreSQL
+        self._write_to_postgres(df_time, "dim_time", mode="overwrite")
 
     def load_fact_trip(self, df_processed: DataFrame, mode: str = "append") -> None:
-        """Map các cột của Processed DataFrame sang Fact table schema và lưu vào BigQuery"""
+        """Map các cột của Processed DataFrame sang Fact table schema và lưu vào PostgreSQL"""
         logger.info("Đang chuẩn bị mapping dữ liệu cho bảng FACT_TRIP...")
         
         # Tạo khóa surrogate key ngẫu nhiên nhưng lặp lại được bằng cách hash MD5 các trường chính
@@ -221,7 +228,7 @@ class YellowTaxiWarehouseLoader:
             F.date_format("tpep_dropoff_datetime", "yyyyMMddHH").cast("long")
         )
         
-        # Chọn và đổi tên các cột tương ứng với BigQuery DDL
+        # Chọn và đổi tên các cột tương ứng với PostgreSQL DDL
         df_fact_mapped = df_fact.select(
             F.col("trip_id").cast("string"),
             F.col("VendorID").cast("long").alias("vendor_key"),
@@ -245,16 +252,15 @@ class YellowTaxiWarehouseLoader:
             F.col("Airport_fee").cast("double").alias("airport_fee"),
             F.col("cbd_congestion_fee").cast("double"),
             F.col("total_amount").cast("double"),
-            F.col("store_and_fwd_flag").cast("string"),
-            F.col("pickup_date").cast("date")
+            F.col("store_and_fwd_flag").cast("string")
         )
         
         # Bảng fact thường append theo phân vùng
-        self._write_to_bigquery(df_fact_mapped, "fact_trip", mode=mode)
+        self._write_to_postgres(df_fact_mapped, "fact_trip", mode=mode)
 
     def load_all(self, df_processed: DataFrame) -> None:
         """Khởi động toàn bộ luồng load warehouse"""
-        logger.info("=== BẮT ĐẦU QUY TRÌNH LOAD WAREHOUSE (GOOGLE BIGQUERY) ===")
+        logger.info("=== BẮT ĐẦU QUY TRÌNH LOAD WAREHOUSE (POSTGRESQL) ===")
         self.load_dim_vendor()
         self.load_dim_payment()
         self.load_dim_rate()
