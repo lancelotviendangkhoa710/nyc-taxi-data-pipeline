@@ -354,6 +354,25 @@ python spark/etl/main.py
 
 ---
 
+## Spec-Driven Development
+This project uses [GitHub Spec Kit](https://github.com/github/spec-kit) to manage data pipeline specifications.
+
+### Installation
+Ensure `specify-cli` is installed in your environment:
+```bash
+pip install specify-cli
+```
+
+### Usage
+- **Create/Edit Specs**: Add or modify YAML files in the `specs/` directory.
+- **Generate Code**: Run the generation script:
+  ```bash
+  ./scripts/generate-from-spec.sh
+  ```
+
+### GitIgnore Policy
+Spec Kit artifacts (`.specify/`, `specs/generated/`, `*.spec-cache`, `specify.log`) are ignored by Git to prevent committing generated code.
+
 ## 📋 Roadmap
 
 - [ ] Real-time streaming pipeline (Kafka → Spark Streaming)

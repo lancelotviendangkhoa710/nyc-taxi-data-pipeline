@@ -71,7 +71,8 @@ class YellowTaxiWarehouseLoader:
         logger.info("Đang tạo dữ liệu chiều DIM_VENDOR...")
         vendor_data = [
             (1, "Creative Mobile Technologies"),
-            (2, "Curb Mobility")
+            (2, "Curb Mobility"),
+            (7, "Unknown")
         ]
         df_vendor = self.spark.createDataFrame(vendor_data, ["vendor_key", "vendor_name"])
         df_vendor = df_vendor.select(
@@ -231,13 +232,13 @@ class YellowTaxiWarehouseLoader:
         # Chọn và đổi tên các cột tương ứng với PostgreSQL DDL
         df_fact_mapped = df_fact.select(
             F.col("trip_id").cast("string"),
-            F.col("VendorID").cast("long").alias("vendor_key"),
+            F.when(F.col("VendorID").isin(1, 2), F.col("VendorID")).otherwise(F.lit(7)).cast("long").alias("vendor_key"),
             F.col("pickup_time_key").cast("long"),
             F.col("dropoff_time_key").cast("long"),
-            F.col("PULocationID").cast("long").alias("pickup_location_key"),
-            F.col("DOLocationID").cast("long").alias("dropoff_location_key"),
-            F.col("payment_type").cast("long").alias("payment_key"),
-            F.col("RatecodeID").cast("long").alias("rate_key"),
+            F.coalesce(F.col("PULocationID"), F.lit(0)).cast("long").alias("pickup_location_key"),
+            F.coalesce(F.col("DOLocationID"), F.lit(0)).cast("long").alias("dropoff_location_key"),
+            F.coalesce(F.col("payment_type"), F.lit(0)).cast("long").alias("payment_key"),
+            F.coalesce(F.col("RatecodeID"), F.lit(1)).cast("long").alias("rate_key"),
             F.col("passenger_count").cast("long"),
             F.col("trip_distance").cast("double"),
             F.col("trip_duration_min").cast("double"),

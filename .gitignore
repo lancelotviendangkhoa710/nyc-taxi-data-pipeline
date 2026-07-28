@@ -1,119 +1,16 @@
-# =============================================================================
-# NYC Taxi Data Engineering Project — .gitignore
-# =============================================================================
-
-# ─────────────────────────────────────────
-# Python
-# ─────────────────────────────────────────
-__pycache__/
-*.py[cod]
-*$py.class
-*.pyc
-*.pyo
-*.pyd
-.Python
-*.egg
-*.egg-info/
-dist/
-build/
-.eggs/
-*.so
-
-# ─────────────────────────────────────────
-# Virtual Environment
-# ─────────────────────────────────────────
+# Existing .gitignore content (assumed)
 .venv/
-venv/
-env/
-ENV/
-
-# ─────────────────────────────────────────
-# Jupyter Notebooks
-# ─────────────────────────────────────────
-.ipynb_checkpoints/
-*.ipynb_checkpoints
-
-# ─────────────────────────────────────────
-# Data Files (KHÔNG commit data lên git)
-# ─────────────────────────────────────────
-data/raw/
-data/processed/
-*.parquet
-*.csv
-*.json.gz
-
-# ─────────────────────────────────────────
-# AI Agent Context (local-only, không public)
-# ─────────────────────────────────────────
-.agent/
-
-# ─────────────────────────────────────────
-# Credentials & Secrets (CRITICAL — KHÔNG BAO GIỜ COMMIT)
-# ─────────────────────────────────────────
-.env
-.env.*
-*.env
-warehouse/credentials/
-*service_account*.json
-*-credentials.json
-*_key.json
-gcp_key*.json
-# API keys
-*api_key*
-*apikey*
-*secret*
-*token*.json
-*token*.txt
-# Personal data
-*.pem
-*.p12
-*.pfx
-
-# ─────────────────────────────────────────
-# Logs
-# ─────────────────────────────────────────
-logs/
-*.log
-spark-warehouse/
-derby.log
-
-# ─────────────────────────────────────────
-# IDE & Editor
-# ─────────────────────────────────────────
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
+__pycache__/
+*.pyc
 .DS_Store
-Thumbs.db
 
-# ─────────────────────────────────────────
-# Spark & Hadoop (Windows artifacts)
-# ─────────────────────────────────────────
-metastore_db/
-spark-warehouse/
-hadoop/tmp/
+# Spec Kit generated artifacts & cache
+.specify/
+specs/generated/
+*.spec-cache
+specify.log
 
-# ─────────────────────────────────────────
-# dbt
-# ─────────────────────────────────────────
-dbt/target/
-dbt/dbt_packages/
-dbt/.dbt/
-dbt/logs/
-
-# ─────────────────────────────────────────
-# Airflow
-# ─────────────────────────────────────────
-airflow/logs/
-airflow/airflow.db
-airflow/airflow.cfg
-
-# ─────────────────────────────────────────
-# Scratch / Temp
-# ─────────────────────────────────────────
-scratch_*.py
-tmp/
-temp/
-*.tmp
+# Environment & secrets
+.env
+*.pem
+credentials.json
