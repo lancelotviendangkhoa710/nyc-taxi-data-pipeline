@@ -14,7 +14,7 @@ spark = SparkSession.builder.appName("profiling").getOrCreate()
 spark.sparkContext.setLogLevel("WARN")
 
 print("Reading Parquet...")
-df = spark.read.parquet("data/raw/yellow_tripdata_2026-01.parquet")
+df = spark.read.parquet("D:\NYC_Taxi_Project\data\raw\yellow\yellow_tripdata_2026_01.parquet")
 
 total_rows = df.count()
 print(f"Total Rows: {total_rows}")
