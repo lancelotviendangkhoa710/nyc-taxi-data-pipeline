@@ -1,390 +1,231 @@
-# Nền tảng Kỹ thuật Dữ liệu Taxi Vàng NYC
+# NYC Taxi End-to-End Data Engineering Project
 
-Một nền tảng kỹ thuật dữ liệu cấp sản xuất để phân tích dữ liệu chuyến đi của Taxi Vàng NYC bằng Apache Spark, dbt và PostgreSQL. Dự án này minh họa kiến trúc data lakehouse hiện đại với xử lý hàng loạt, chuyển đổi dữ liệu và bảng điều khiển thông minh kinh doanh.
-
-## 🎯 Tổng quan dự án
-
-Nền tảng này thu thập, xử lý và phân tích hàng triệu bản ghi chuyến đi taxi NYC để cung cấp thông tin chi tiết về:
-
-- Xu hướng doanh thu và mô hình nhu cầu taxi
-- Phân tích thời gian và khoảng cách chuyến đi
-- Phân phối phương thức thanh toán
-- Phân tích điểm nóng địa lý theo khu vực đón/trả khách
-- Chỉ số hiệu suất của tài xế
-
-**Công nghệ sử dụng:**
-
-- **Thu thập dữ liệu**: Tệp Parquet NYC TLC
-- **Xử lý**: Apache Spark (PySpark) với thực thi cục bộ
-- **Lưu trữ**: PostgreSQL (Supabase hoặc tự lưu trữ)
-- **Chuyển đổi**: dbt (data build tool)
-- **Điều phối**: Apache Airflow
-- **Trực quan hóa**: Metabase
-- **Cơ sở hạ tầng**: Docker (triển khai container)
+> [🇻🇳 Tiếng Việt](#-tiếng-việt) | [🇬🇧 English](#-english)
 
 ---
 
-## 📊 Kiến trúc
+## 🇬🇧 English
 
-### Đường ống luồng dữ liệu
+### Overview
 
-```
-Dữ liệu NYC TLC (Parquet)
-    ↓
-[Lớp thô] - data/raw/*.parquet
-    ↓ (PySpark ETL)
-[Lớp đã xử lý] - data/processed/*.parquet
-    ↓ (PostgreSQL JDBC)
-[Lớp kho dữ liệu] - PostgreSQL (Star Schema)
-    ↓ (Chuyển đổi dbt)
-[Lớp chuyển đổi] - Staging → Intermediate → Mart
-    ↓
-[Lớp trình bày] - Bảng điều khiển Metabase
-```
+An end-to-end batch data engineering pipeline for **NYC Yellow Taxi** trip data (TLC). The project downloads raw Parquet files from the NYC TLC public dataset, processes them through a Spark ETL pipeline, loads into a PostgreSQL star-schema data warehouse, and produces analytics-ready tables.
 
-### Luồng thực thi (Airflow DAG)
+### Architecture
 
 ```
-download_data
-    ↓
-run_spark_etl (làm sạch, xác thực, làm giàu)
-    ↓
-load_to_postgres (kho dữ liệu PostgreSQL)
-    ↓
-run_dbt_models (mô hình hóa chiều)
-    ↓
-refresh_dashboard (bảng điều khiển phân tích)
+NYC TLC (Parquet) → Spark ETL (Extract → Transform → Validate → Load) → PostgreSQL Data Warehouse
 ```
 
-### Cấu trúc thư mục
+![Workflow](docs/WorkFlow.png)
+
+### Tech Stack
+
+| Technology | Purpose |
+| --- | --- |
+| **Python 3.12** | Core language |
+| **Apache Spark** | Distributed data processing (local mode) |
+| **PostgreSQL 16** | Data warehouse |
+| **Docker** | PostgreSQL containerization |
+| **Parquet** | Columnar storage format |
+| **JDBC** | Spark ↔ PostgreSQL connectivity |
+
+### Project Structure
 
 ```
-.
-├── data/
-│   ├── raw/                 # Tệp Parquet NYC TLC chưa xử lý
-│   └── processed/           # Tệp parquet đã làm sạch và xác thực
-├── spark/
-│   ├── config.py           # Cấu hình Spark
-│   ├── utils/              # Hàm hỗ trợ
-│   └── etl/
-│       ├── main.py         # Điểm vào điều phối ETL
-│       ├── pipeline.py     # Logic chuyển đổi cốt lõi
-│       ├── load.py         # Tiện ích tải dữ liệu
-│       └── load_warehouse.py  # Tải vào PostgreSQL
-├── warehouse/
-│   ├── credentials/        # Thông tin kết nối cơ sở dữ liệu
-│   └── ddl/                # Định nghĩa lược đồ kho dữ liệu
-│       ├── fact_trip.sql   # Bảng sự kiện chuyến đi
-│       ├── dim_vendor.sql  # Chiều nhà cung cấp
-│       ├── dim_time.sql    # Chiều thời gian
-│       ├── dim_location.sql # Chiều địa điểm
-│       ├── dim_payment.sql # Chiều thanh toán
-│       └── dim_rate.sql    # Chiều mã giá cước
-├── dbt/                     # Mô hình, kiểm thử, tài liệu dbt
-├── airflow/
-│   └── dags/               # Định nghĩa Airflow DAG
-├── docker/                 # Cấu hình Docker Compose
-├── docs/                   # Tài liệu dự án
-└── .gitnexus/             # Chỉ mục thông minh mã nguồn GitNexus
+├── spark/                  # ETL source code
+│   ├── config.py           # Central configuration
+│   ├── etl/                # ETL modules
+│   │   ├── extract.py      # Data extraction from Parquet
+│   │   ├── transform.py    # Data cleaning & enrichment
+│   │   ├── validate.py     # Data quality checks
+│   │   ├── load.py         # Write processed Parquet
+│   │   ├── load_warehouse.py  # Load into PostgreSQL
+│   │   ├── fetch_taxi_data.py # Download from NYC TLC
+│   │   ├── pipeline.py     # Full pipeline orchestration
+│   │   ├── main.py         # CLI entry point
+│   │   └── run_pipeline.py # Pipeline runner
+│   └── utils/              # Shared utilities
+│       ├── logger.py       # Logging config
+│       └── spark_session.py # Spark session factory
+├── infrastructure/         # Infrastructure & deployment
+│   ├── docker/             # Docker Compose for PostgreSQL
+│   ├── hadoop/             # Hadoop binaries (Windows)
+│   └── warehouse/          # DDL scripts (star schema)
+│       └── ddl/            # Dimension & fact table definitions
+├── data/                   # Data storage (git-ignored)
+│   ├── raw/yellow/         # Raw Parquet files
+│   └── processed/          # Transformed Parquet (partitioned by date)
+├── docs/                   # Documentation
+│   ├── architecture.md     # System architecture
+│   ├── data_model.md       # Data model design
+│   ├── data_dictionary.md  # Column definitions
+│   ├── IMPLEMENT_PLAN.md   # Implementation roadmap
+│   └── specs/              # Data source specifications
+├── tests/                  # Test suite
+├── logs/                   # Application logs
+├── pyproject.toml          # Python project config
+└── .env.example            # Environment variable template
 ```
 
----
+### Data Model (Star Schema)
 
-## 📋 Tập dữ liệu
+| Table | Type | Description |
+| --- | --- | --- |
+| `fact_trip` | Fact | Trip records with measures (fare, distance, duration) |
+| `dim_vendor` | Dimension | Taxi vendor information |
+| `dim_payment` | Dimension | Payment type lookup |
+| `dim_rate` | Dimension | Rate code lookup |
+| `dim_location` | Dimension | Pickup/dropoff zone mapping |
+| `dim_time` | Dimension | Time dimension |
 
-**Nguồn:** Bản ghi chuyến đi Taxi Vàng của Ủy ban Taxi và Limousine NYC (TLC)
+### ETL Pipeline
 
-**Các trường chính:**
+1. **Extract** — Download Yellow Taxi Parquet files from NYC TLC website
+2. **Transform** — Clean data, remove outliers, add derived columns (`trip_duration_min`, `tip_ratio`, `pickup_date`)
+3. **Validate** — Data quality checks (nulls, ranges, referential integrity)
+4. **Load** — Write partitioned Parquet files + load into PostgreSQL via JDBC
 
-- `VendorID`: Nhà cung cấp dịch vụ taxi (1 = Creative Mobile, 2 = VeriFone)
-- `tpep_pickup_datetime / tpep_dropoff_datetime`: Dấu thời gian chuyến đi
-- `passenger_count`: Số lượng hành khách
-- `trip_distance`: Khoảng cách tính bằng dặm
-- `RatecodeID`: Loại giá cước (Tiêu chuẩn, JFK, Newark, v.v.)
-- `PULocationID / DOLocationID`: Định danh khu vực đón/trả khách
-- `payment_type`: Phương thức thanh toán (Thẻ tín dụng, Tiền mặt, v.v.)
-- `fare_amount, extra, mta_tax, tip_amount, tolls_amount, improvement_surcharge, congestion_surcharge`: Các thành phần giá cước
-- `total_amount`: Tổng chi phí chuyến đi
-
-**Cột dẫn xuất (Giai đoạn ETL):**
-
-- `trip_duration_min`: Thời gian chuyến đi tính bằng phút
-- `tip_ratio`: Tiền boa tính theo phần trăm giá cước cơ bản
-- `pickup_date`: Khóa phân vùng ngày (YYYY-MM-DD)
-
----
-
-## 🚀 Bắt đầu nhanh
-
-### Điều kiện tiên quyết
-
-- Python 3.8+
-- Apache Spark 3.x
-- PostgreSQL 12+ (hoặc tài khoản Supabase)
-- Docker & Docker Compose (để triển khai container)
-- dbt 1.5+
-- Apache Airflow 2.x
-
-### Thiết lập phát triển cục bộ
-
-1. **Sao chép kho lưu trữ:**
-
-   ```bash
-   git clone https://github.com/lancelotviendangkhoa710/nyc-taxi-de-project.git
-   cd nyc-taxi-de-project
-   ```
-
-2. **Cài đặt phụ thuộc Python:**
-
-   ```bash
-   pip install pyspark pandas numpy dbt-postgres apache-airflow psycopg2-binary
-   ```
-
-3. **Cấu hình thông tin PostgreSQL:**
-
-   ```bash
-   # Cập nhật tệp .env với chi tiết kết nối PostgreSQL
-   export PG_HOST=your-supabase-host.supabase.co
-   export PG_PORT=5432
-   export PG_DATABASE=postgres
-   export PG_USER=postgres
-   export PG_PASSWORD=your-password
-   ```
-
-4. **Chạy đường ống ETL cục bộ:**
-
-   ```bash
-   python spark/etl/main.py
-   ```
-
-5. **Tải dữ liệu vào kho:**
-
-   ```bash
-   python spark/etl/load_warehouse.py
-   ```
-
-6. **Thực thi chuyển đổi dbt:**
-
-   ```bash
-   cd dbt
-   dbt run
-   dbt test
-   ```
-
-### Triển khai Docker
+### Quick Start
 
 ```bash
-docker-compose -f docker/docker-compose.yml up -d
+# 1. Clone
+git clone https://github.com/lancelotviendangkhoa710/nyc-taxi-de-project.git
+cd nyc-taxi-de-project
+
+# 2. Set up environment
+python -m venv .venv
+.venv\Scripts\activate        # Windows
+pip install -e .
+
+# 3. Configure
+cp .env.example .env
+# Edit .env with your PostgreSQL credentials
+
+# 4. Start PostgreSQL
+cd infrastructure/docker
+docker compose up -d
+
+# 5. Run pipeline
+python -m spark.etl.main
 ```
 
----
+### Requirements
 
-## 🔧 Cấu hình
-
-### Lược đồ kho dữ liệu
-
-**Thiết kế Star Schema của PostgreSQL:**
-
-- **fact_trip**: Bảng sự kiện trung tâm với các chỉ số chuyến đi
-- **dim_vendor**: Nhà cung cấp dịch vụ taxi
-- **dim_time**: Chiều thời gian (giờ, ngày, tháng, quý, năm)
-- **dim_location**: Các khu vực taxi NYC với địa lý
-- **dim_payment**: Phương thức thanh toán
-- **dim_rate**: Các danh mục mã giá cước
-
-Xem `warehouse/ddl/` để biết các tệp định nghĩa lược đồ cơ sở dữ liệu.
+- Python 3.12+
+- Java 21 (Eclipse Adoptium)
+- Docker (for PostgreSQL)
+- ~2GB disk space for raw data
 
 ---
 
-## 📈 Thực thi đường ống
+## 🇻🇳 Tiếng Việt
 
-### Giai đoạn ETL 1: Thu thập & Làm sạch dữ liệu
+### Tổng Quan
 
-**Đầu vào:** Tệp Parquet NYC TLC thô
-**Xử lý:**
+Pipeline xử lý dữ liệu batch end-to-end cho dữ liệu **NYC Yellow Taxi** (TLC). Dự án tải file Parquet thô từ bộ dữ liệu công khai NYC TLC, xử lý qua pipeline Spark ETL, nạp vào data warehouse PostgreSQL theo mô hình star schema, và tạo ra các bảng sẵn sàng cho phân tích.
 
-- Xác thực lược đồ
-- Xử lý giá trị null
-- Ép kiểu dữ liệu
-- Phát hiện và xử lý ngoại lệ
-- Chuẩn hóa dấu thời gian
+### Kiến Trúc
 
-**Đầu ra:** Tệp parquet đã làm sạch trong `data/processed/`
-
-### Giai đoạn ETL 2: Tải kho dữ liệu
-
-**Đầu vào:** Tệp parquet đã xử lý
-**Xử lý:**
-
-- Tạo bảng PostgreSQL qua Spark JDBC
-- Tổng hợp bảng sự kiện
-- Tra cứu bảng chiều
-- Tạo khóa thay thế
-- Cập nhật SCD Loại 1
-
-**Đầu ra:** Các bảng star schema trong PostgreSQL
-
-### Giai đoạn chuyển đổi 3: Mô hình dbt
-
-**Lớp Staging:** Bí danh bảng thô và làm sạch cơ bản
-**Lớp Intermediate:** Logic kinh doanh và tính toán
-**Lớp Mart:** Các bảng phân tích cuối cùng và tổng hợp
-
-```sql
--- Ví dụ: Doanh thu theo khu vực
-SELECT 
-    dl.zone,
-    DATE(ft.pickup_date) as trip_date,
-    COUNT(*) as total_trips,
-    SUM(ft.total_amount) as total_revenue,
-    AVG(ft.tip_amount) as avg_tip
-FROM fact_trip ft
-JOIN dim_location dl ON ft.pickup_location_key = dl.location_key
-GROUP BY dl.zone, trip_date
+```
+NYC TLC (Parquet) → Spark ETL (Extract → Transform → Validate → Load) → PostgreSQL Data Warehouse
 ```
 
----
+![Workflow](docs/WorkFlow.png)
 
-## 📊 Phân tích chính
+### Công Nghệ Sử Dụng
 
-### Bảng điều khiển chỉ số kinh doanh (Metabase)
+| Công nghệ | Mục đích |
+| --- | --- |
+| **Python 3.12** | Ngôn ngữ chính |
+| **Apache Spark** | Xử lý dữ liệu phân tán (local mode) |
+| **PostgreSQL 16** | Data warehouse |
+| **Docker** | Container hóa PostgreSQL |
+| **Parquet** | Định dạng lưu trữ dạng cột |
+| **JDBC** | Kết nối Spark ↔ PostgreSQL |
 
-1. **Phân tích doanh thu**
-   - Tổng doanh thu theo ngày/tháng/khu vực
-   - Doanh thu theo phương thức thanh toán
-   - Doanh thu trên mỗi khu vực taxi
+### Cấu Trúc Dự Án
 
-2. **Phân tích chuyến đi**
-   - Số lượng và tần suất chuyến đi
-   - Khoảng cách chuyến đi trung bình
-   - Thời gian chuyến đi trung bình
-   - Giờ và khu vực cao điểm
+```
+├── spark/                  # Mã nguồn ETL
+│   ├── config.py           # Cấu hình trung tâm
+│   ├── etl/                # Các module ETL
+│   │   ├── extract.py      # Trích xuất dữ liệu từ Parquet
+│   │   ├── transform.py    # Làm sạch & làm giàu dữ liệu
+│   │   ├── validate.py     # Kiểm tra chất lượng dữ liệu
+│   │   ├── load.py         # Ghi Parquet đã xử lý
+│   │   ├── load_warehouse.py  # Nạp vào PostgreSQL
+│   │   ├── fetch_taxi_data.py # Tải từ NYC TLC
+│   │   ├── pipeline.py     # Điều phối pipeline
+│   │   ├── main.py         # Điểm vào CLI
+│   │   └── run_pipeline.py # Chạy pipeline
+│   └── utils/              # Tiện ích dùng chung
+│       ├── logger.py       # Cấu hình logging
+│       └── spark_session.py # Tạo Spark session
+├── infrastructure/         # Hạ tầng & triển khai
+│   ├── docker/             # Docker Compose cho PostgreSQL
+│   ├── hadoop/             # Hadoop binaries (Windows)
+│   └── warehouse/          # DDL scripts (star schema)
+│       └── ddl/            # Định nghĩa bảng dimension & fact
+├── data/                   # Dữ liệu (không theo dõi bởi git)
+│   ├── raw/yellow/         # File Parquet thô
+│   └── processed/          # Parquet đã xử lý (phân vùng theo ngày)
+├── docs/                   # Tài liệu
+│   ├── architecture.md     # Kiến trúc hệ thống
+│   ├── data_model.md       # Thiết kế mô hình dữ liệu
+│   ├── data_dictionary.md  # Định nghĩa các cột
+│   ├── IMPLEMENT_PLAN.md   # Lộ trình triển khai
+│   └── specs/              # Đặc tả nguồn dữ liệu
+├── tests/                  # Bộ test
+├── logs/                   # Log ứng dụng
+├── pyproject.toml          # Cấu hình project Python
+└── .env.example            # Mẫu biến môi trường
+```
 
-3. **Hiệu suất tài xế**
-   - Số chuyến đi theo nhà cung cấp
-   - Phân phối phần trăm tiền boa
-   - Thống kê số lượng hành khách
+### Mô Hình Dữ Liệu (Star Schema)
 
-4. **Thông tin chi tiết địa lý**
-   - Bản đồ nhiệt các khu vực đón/trả khách
-   - Các tuyến đường phổ biến
-   - Mô hình chuyến đi giữa các khu vực
+| Bảng | Loại | Mô tả |
+| --- | --- | --- |
+| `fact_trip` | Fact | Bản ghi chuyến đi với các measure (giá, khoảng cách, thời gian) |
+| `dim_vendor` | Dimension | Thông tin nhà cung cấp taxi |
+| `dim_payment` | Dimension | Bảng tra cứu loại thanh toán |
+| `dim_rate` | Dimension | Bảng tra cứu mã giá |
+| `dim_location` | Dimension | Ánh xạ khu vực đón/trả khách |
+| `dim_time` | Dimension | Chiều thời gian |
 
----
+### Pipeline ETL
 
-## 🧪 Kiểm thử & Xác thực
+1. **Extract** — Tải file Parquet Yellow Taxi từ website NYC TLC
+2. **Transform** — Làm sạch dữ liệu, loại bỏ outlier, thêm cột phái sinh (`trip_duration_min`, `tip_ratio`, `pickup_date`)
+3. **Validate** — Kiểm tra chất lượng dữ liệu (null, khoảng giá trị, tham chiếu)
+4. **Load** — Ghi file Parquet phân vùng + nạp vào PostgreSQL qua JDBC
 
-### Kiểm thử dbt
+### Bắt Đầu Nhanh
 
 ```bash
-cd dbt
-dbt test  # Chạy tất cả kiểm thử
-dbt test --select model_name  # Kiểm thử mô hình cụ thể
+# 1. Clone
+git clone https://github.com/lancelotviendangkhoa710/nyc-taxi-de-project.git
+cd nyc-taxi-de-project
+
+# 2. Thiết lập môi trường
+python -m venv .venv
+.venv\Scripts\activate        # Windows
+pip install -e .
+
+# 3. Cấu hình
+cp .env.example .env
+# Chỉnh sửa .env với thông tin PostgreSQL của bạn
+
+# 4. Khởi động PostgreSQL
+cd infrastructure/docker
+docker compose up -d
+
+# 5. Chạy pipeline
+python -m spark.etl.main
 ```
 
-Các kiểm thử tích hợp:
+### Yêu Cầu
 
-- **unique**: Không có khóa chính trùng lặp
-- **not_null**: Các trường bắt buộc đã được điền
-- **relationships**: Ràng buộc khóa ngoại
-- **accepted_values**: Xác thực enum
-
-### Kiểm tra chất lượng dữ liệu
-
-Spark ETL bao gồm:
-
-- Xác thực số lượng hàng
-- Phát hiện sai lệch lược đồ
-- Ngưỡng phần trăm null
-- Phát hiện trùng lặp
-
----
-
-## 📚 Tài liệu
-
-- **[Hướng dẫn kiến trúc](docs/architecture.md)** - Thiết kế hệ thống và luồng dữ liệu
-- **[Từ điển dữ liệu](docs/data_dictionary.md)** - Định nghĩa trường và chuyển đổi
-- **[Mô hình dữ liệu](docs/data_model.md)** - Star schema và thiết kế chiều
-
----
-
-## 🛠️ Quy trình phát triển
-
-### Thay đổi cục bộ
-
-1. Sửa đổi mã Spark ETL trong `spark/etl/`
-2. Kiểm thử cục bộ: `python spark/etl/main.py`
-3. Cập nhật mô hình dbt trong `dbt/models/`
-4. Chạy kiểm thử dbt: `cd dbt && dbt test`
-
-### Chất lượng mã nguồn
-
-Dự án này sử dụng GitNexus để thông minh hóa mã nguồn:
-
-- Chạy phân tích tác động trước khi thay đổi: `gitnexus impact`
-- Phát hiện những gì thay đổi ảnh hưởng đến: `gitnexus detect_changes`
-- Khám phá mối quan hệ mã nguồn: `gitnexus query`
-
-### Triển khai
-
-```bash
-git add .
-git commit -m "feat: mô tả thay đổi"
-git push origin main
-```
-
-Airflow sẽ tự động cập nhật các thay đổi DAG.
-
----
-
-## 🐛 Khắc phục sự cố
-
-### Vấn đề bộ nhớ Spark
-
-```bash
-export SPARK_LOCAL_IP=127.0.0.1
-export SPARK_DRIVER_MEMORY=4g
-export SPARK_EXECUTOR_MEMORY=4g
-python spark/etl/main.py
-```
-
----
-
-## Phát triển theo đặc tả
-
-Dự án này sử dụng [GitHub Spec Kit](https://github.com/github/spec-kit) để quản lý các đặc tả đường ống dữ liệu.
-
-### Cài đặt
-
-Đảm bảo `specify-cli` đã được cài đặt trong môi trường của bạn:
-
-```bash
-pip install specify-cli
-```
-
-### Sử dụng
-
-- **Tạo/Sửa đặc tả**: Thêm hoặc sửa đổi các tệp YAML trong thư mục `specs/`.
-- **Tạo mã nguồn**: Chạy tập lệnh tạo:
-
-  ```bash
-  ./scripts/generate-from-spec.sh
-  ```
-
-### Chính sách GitIgnore
-
-Các tạo tác Spec Kit (`.specify/`, `specs/generated/`, `*.spec-cache`, `specify.log`) bị Git bỏ qua để tránh cam kết mã nguồn được tạo tự động.
-
-## 📋 Lộ trình
-
-- [ ] Đường ống phát trực tuyến thời gian thực (Kafka → Spark Streaming)
-- [ ] Mô hình học máy (dự báo nhu cầu chuyến đi)
-- [ ] Giám sát nâng cao (Great Expectations, Soda)
-- [ ] Hỗ trợ đa đám mây (AWS Redshift, Azure Synapse)
-- [ ] Lớp API (FastAPI cho các truy vấn phân tích)
-
----
-
-## Tác giả
-
-**Khoa Lancelot** - [GitHub](https://github.com/lancelotviendangkhoa710)
+- Python 3.12+
+- Java 21 (Eclipse Adoptium)
+- Docker (cho PostgreSQL)
+- ~2GB dung lượng đĩa cho dữ liệu thô

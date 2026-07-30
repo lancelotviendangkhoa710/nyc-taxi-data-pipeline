@@ -22,7 +22,7 @@ PROCESSED_DIR  = DATA_DIR / "processed"
 # 3. JAVA & HADOOP (Windows)
 # ─────────────────────────────────────────
 JAVA_HOME    = r"C:\Program Files\Eclipse Adoptium\jdk-21.0.11.10-hotspot"
-HADOOP_HOME  = str(ROOT_DIR / "hadoop")
+HADOOP_HOME  = str(ROOT_DIR / "infrastructure" / "hadoop")
 
 def setup_java_env():
     """
