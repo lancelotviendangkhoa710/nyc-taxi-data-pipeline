@@ -15,7 +15,7 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 # 2. DATA PATHS
 # ─────────────────────────────────────────
 DATA_DIR       = ROOT_DIR / "data"
-RAW_DIR        = DATA_DIR / "raw"
+RAW_DIR        = DATA_DIR / "raw/yellow"
 PROCESSED_DIR  = DATA_DIR / "processed"
 
 # ─────────────────────────────────────────

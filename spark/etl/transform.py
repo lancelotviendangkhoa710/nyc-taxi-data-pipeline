@@ -1,7 +1,7 @@
 from pyspark.sql import DataFrame
 import pyspark.sql.functions as F
 from spark.utils.logger import get_logger
-
+import os
 logger = get_logger("spark.etl.transform")
 
 def handle_null_values(df: DataFrame) -> DataFrame:
@@ -34,8 +34,8 @@ def filter_outliers(df: DataFrame) -> DataFrame:
     df_filtered = df_filtered.filter(
         (df_filtered["fare_amount"] >= 2.5) & (df_filtered["fare_amount"] <= 1000)
     )
-    
-    return df_filtered
+    df_clean = df_filtered.filter(df_filtered["RatecodeID"] != 99)
+    return df_clean
 
 def add_derived_columns(df: DataFrame) -> DataFrame:
     logger.info("Đang tạo các cột phát sinh (derived columns)...")
@@ -52,3 +52,9 @@ def add_derived_columns(df: DataFrame) -> DataFrame:
     )
     
     return df_transformed
+
+def remove_duplicates(df: DataFrame) -> DataFrame:
+    logger.info("Đang loại bỏ các bản ghi trùng lặp...")
+    df_cleaned = df.dropDuplicates()
+    return df_cleaned   
+

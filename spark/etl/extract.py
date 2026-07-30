@@ -1,7 +1,7 @@
 from pyspark.sql import SparkSession, DataFrame
 from spark.config import setup_java_env, SPARK_APP_NAME, SPARK_MASTER, SPARK_CONFIGS
 from spark.utils.logger import get_logger
-
+import os
 logger = get_logger("spark.etl.extract")
 
 def get_spark_session() -> SparkSession:
@@ -31,11 +31,12 @@ def extract_data(spark: SparkSession, raw_dir_path: str, file_pattern: str) -> D
       logger.error(f"Không tìm thấy file nào khớp với: {full_path}")
       raise FileNotFoundError(f"Không tìm thấy file nào khớp với: {full_path}")
       
-    logger.info(f"Tìm thấy các file: {resolved_paths}. Đang đọc dữ liệu...")
+    logger.info(f"Tìm thấy các file: {resolved_paths}. Đang đọc dữ liệu...\n")
+
     df = spark.read.parquet(*resolved_paths)
     
     if len(df.columns) == 0:
-      logger.warning(f"Cảnh báo: Dữ liệu đọc được từ {full_path} không có cột nào (file rỗng).")
+      logger.warning(f"Cảnh báo: Dữ liệu đọc được từ {full_path} không có cột nào (file rỗng).\n")
       
     return df
     

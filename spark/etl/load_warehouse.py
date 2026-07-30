@@ -1,6 +1,7 @@
 import os
 import urllib.request
 from pyspark.sql import SparkSession, DataFrame
+import spark 
 from pyspark.sql import functions as F
 from spark.config import (
     PG_HOST,
@@ -29,14 +30,7 @@ class YellowTaxiWarehouseLoader:
         logger.info(f"PostgreSQL Connection: {PG_HOST}:{PG_PORT}/{PG_DATABASE}")
         
     def _write_to_postgres(self, df: DataFrame, table_name: str, mode: str = "append") -> None:
-        """
-        Hàm helper ghi DataFrame lên PostgreSQL sử dụng JDBC.
-        
-        Args:
-            df: DataFrame để ghi
-            table_name: Tên bảng PostgreSQL
-            mode: "append", "overwrite", "ignore", hoặc "error"
-        """
+   
         logger.info(f"Đang ghi dữ liệu lên bảng PostgreSQL: {table_name} (Mode: {mode})...")
         try:
             writer = df.write \
@@ -55,7 +49,7 @@ class YellowTaxiWarehouseLoader:
                     user=PG_USER, password=PG_PASSWORD
                 )
                 cur = conn.cursor()
-                cur.execute(f"TRUNCATE TABLE {table_name} CASCADE")
+                cur.execute(f"TRUNCATE TABLE {table_name} RESTART IDENTITY CASCADE")
                 conn.commit()
                 cur.close()
                 conn.close()
@@ -255,6 +249,7 @@ class YellowTaxiWarehouseLoader:
             F.col("total_amount").cast("double"),
             F.col("store_and_fwd_flag").cast("string")
         )
+        df_fact_mapped = df_fact_mapped.limit(200)
         
         # Bảng fact thường append theo phân vùng
         self._write_to_postgres(df_fact_mapped, "fact_trip", mode=mode)
@@ -267,6 +262,6 @@ class YellowTaxiWarehouseLoader:
         self.load_dim_rate()
         self.load_dim_location()
         self.load_dim_time(df_processed)
-        # Sử dụng overwrite cho fact_trip lúc chạy thử nghiệm, append cho thực tế
+        # Sử dụng append cho fact_trip để tránh lỗi unique constraint khi đã có dữ liệu
         self.load_fact_trip(df_processed, mode="overwrite")
         logger.info("=== QUY TRÌNH LOAD WAREHOUSE HOÀN THÀNH ===")

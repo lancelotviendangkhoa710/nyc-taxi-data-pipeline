@@ -1,58 +1,58 @@
-# Architecture — NYC Taxi Data Engineering Platform
+# Kiến trúc — Nền tảng Kỹ thuật Dữ liệu Taxi NYC
 
-## Overview
+## Tổng quan
 
-Nền tảng được thiết kế theo mô hình **Batch Processing** với các lớp tách biệt rõ ràng (Lakehouse-lite pattern).
+Nền tảng được thiết kế theo mô hình **Batch Processing** với các lớp tách biệt rõ ràng (mô hình Lakehouse-lite).
 
 ---
 
-## Data Flow
+## Luồng dữ liệu
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                    DATA SOURCES                         │
-│         NYC TLC Parquet Files (Yellow Taxi)             │
+│                    NGUỒN DỮ LIỆU                        │
+│         Tệp Parquet NYC TLC (Taxi Vàng)                 │
 └─────────────────┬───────────────────────────────────────┘
-                  │  Download / Extract
+                  │  Tải xuống / Trích xuất
                   ▼
 ┌─────────────────────────────────────────────────────────┐
-│                   RAW LAYER                             │
+│                   LỚP THÔ (RAW)                         │
 │              data/raw/*.parquet                         │
 │         (Không chỉnh sửa, giữ nguyên gốc)              │
 └─────────────────┬───────────────────────────────────────┘
                   │  PySpark ETL (spark/etl/)
                   ▼
 ┌─────────────────────────────────────────────────────────┐
-│                PROCESSED LAYER                          │
+│                LỚP ĐÃ XỬ LÝ (PROCESSED)                 │
 │           data/processed/*.parquet                      │
-│     (Cleaned, validated, enriched với new columns)      │
+│     (Đã làm sạch, xác thực, làm giàu với cột mới)      │
 └─────────────────┬───────────────────────────────────────┘
-                  │  PySpark Write (GCS / BigQuery API)
+                  │  PySpark Write (JDBC)
                   ▼
 ┌─────────────────────────────────────────────────────────┐
-│              WAREHOUSE LAYER                            │
-│           Google BigQuery (Sandbox)                     │
+│              LỚP KHO DỮ LIỆU (WAREHOUSE)                │
+│           PostgreSQL                                    │
 │    FACT_TRIP + DIM_* (Star Schema)                      │
 └─────────────────┬───────────────────────────────────────┘
                   │  dbt run / dbt test
                   ▼
 ┌─────────────────────────────────────────────────────────┐
-│              TRANSFORM LAYER                            │
+│              LỚP CHUYỂN ĐỔI (TRANSFORM)                 │
 │                    dbt                                  │
 │   staging → intermediate → mart                        │
 └─────────────────┬───────────────────────────────────────┘
-                  │  Google BigQuery Connection
+                  │  Kết nối PostgreSQL
                   ▼
 ┌─────────────────────────────────────────────────────────┐
-│             PRESENTATION LAYER                          │
+│             LỚP TRÌNH BÀY (PRESENTATION)                │
 │                  Metabase                               │
-│    Revenue / Trips / Tips / Zone Analysis Dashboards    │
+│    Bảng điều khiển Doanh thu / Chuyến đi / Tiền boa     │
 └─────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Orchestration (Airflow DAG)
+## Điều phối (Airflow DAG)
 
 ```
 download_data
@@ -66,27 +66,27 @@ run_dbt_models
 refresh_dashboard
 ```
 
-Tất cả các bước trên được schedule và monitor bởi **Apache Airflow**.
+Tất cả các bước trên được lập lịch và giám sát bởi **Apache Airflow**.
 
 ---
 
-## Deployment
+## Triển khai
 
 | Môi trường | Mô tả |
-|---|---|
-| **Hybrid (hiện tại)** | PySpark `local[*]`, BigQuery Sandbox (Cloud), dbt local |
-| **Future: Docker** | Toàn bộ local stack (Airflow, Metabase, dbt) chạy bằng `docker compose up` kết nối tới BigQuery |
+| --- | --- |
+| **Hybrid (hiện tại)** | PySpark `local[*]`, PostgreSQL, dbt local |
+| **Future: Docker** | Toàn bộ local stack (Airflow, Metabase, dbt) chạy bằng `docker compose up` |
 
 ---
 
 ## Thư mục liên quan
 
-| Layer | Path |
-|---|---|
-| Raw Data | `data/raw/` |
-| Processed Data | `data/processed/` |
+| Lớp | Đường dẫn |
+| --- | --- |
+| Dữ liệu thô | `data/raw/` |
+| Dữ liệu đã xử lý | `data/processed/` |
 | Spark ETL | `spark/etl/` |
-| Warehouse Schema | `warehouse/` |
-| dbt Models | `dbt/` |
+| Lược đồ kho dữ liệu | `warehouse/` |
+| Mô hình dbt | `dbt/` |
 | Airflow DAGs | `airflow/dags/` |
-| Docker Config | `docker/` |
+| Cấu hình Docker | `docker/` |

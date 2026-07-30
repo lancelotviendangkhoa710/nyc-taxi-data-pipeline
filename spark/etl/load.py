@@ -23,10 +23,10 @@ def load_data(df: DataFrame, output_path: str = None, partition_col: str = "pick
     # 2. Ghi dữ liệu ra định dạng Parquet với phân vùng
     logger.info(f"Đang thực hiện ghi dữ liệu dạng Parquet, phân vùng theo: {partition_col}...")
     try:
-        # Sử dụng write.mode("overwrite") để có thể ghi đè/chạy lại ETL một cách idempotent
+       
         (
             df_selected.write
-            .mode("overwrite")
+            .mode("append")
             .partitionBy(partition_col)
             .parquet(output_path)
         )
