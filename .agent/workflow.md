@@ -153,6 +153,94 @@ def function_name(df: DataFrame, ...) -> DataFrame:
 
 ---
 
+## Progress Tracking Rule 📊
+
+> **Rule này định nghĩa khi nào AI sẽ gợi ý cập nhật document tiến độ công việc.**
+
+### Khi Nào Gợi Ý Cập Nhật?
+
+AI sẽ tự động gợi ý cập nhật `docs/progress/PROGRESS.md` trong các tình huống sau:
+
+1. **Hoàn thành một task từ TODO → Done**
+   - Ví dụ: `spark/etl/load.py` hoàn thành
+   - Gợi ý: Thêm vào mục "Milestones Completed" với date & notes
+
+2. **Hoàn thành một Phase**
+   - Ví dụ: Phase 2 hoàn thành 100%
+   - Gợi ý: Cập nhật "Current Status" → Overall Progress, Current Phase
+
+3. **Phát hiện Blocker hoặc Risk mới**
+   - Ví dụ: Java config issue, PostgreSQL connection failure
+   - Gợi ý: Thêm vào "Blockers & Risks" table
+
+4. **Có thay đổi lớn trong Performance Metrics**
+   - Ví dụ: Execution time giảm từ 15m → 8m do optimization
+   - Gợi ý: Cập nhật "Performance Metrics" table
+
+### Format Cập Nhật
+
+AI sẽ gợi ý theo format này:
+
+```markdown
+### [Date - HH:MM]
+- **Action:** Mô tả ngắn gọn
+- **Files:** Files bị ảnh hưởng (nếu có)
+- **Next:** Next step là gì
+```
+
+### Quy Trình Approval
+
+**Hybrid Model: AI Suggest → Human Review → Approve**
+
+1. **AI Suggest** (bước 1)
+   - AI tạo draft update cho `docs/progress/PROGRESS.md`
+   - Hiển thị cho người dùng (không tự động commit)
+   - Format: Markdown snippet ready to copy-paste
+
+2. **Human Review** (bước 2)
+   - Người dùng đọc gợi ý
+   - Sửa/chỉnh lại nếu cần (thêm chi tiết, sửa date, v.v.)
+   - Hoặc từ chối nếu không phù hợp
+
+3. **Approve & Save** (bước 3)
+   - Nếu đồng ý: Người dùng cho phép AI save vào file
+   - Nếu từ chối: AI bỏ qua, không update
+
+### Ví Dụ
+
+**Tình huống:** Vừa hoàn thành `spark/etl/load.py`
+
+**AI Gợi Ý:**
+```markdown
+Tôi phát hiện bạn vừa hoàn thành spark/etl/load.py. 
+Đây là gợi ý cập nhật PROGRESS.md:
+
+### 2026-08-10 14:30
+- **Action:** Completed ETL Load module — write partitioned Parquet
+- **Files:** spark/etl/load.py (NEW)
+- **Next:** Create main.py orchestration
+
+[Table Update]
+| 6 | Load module | 2026-08-10 | ✅ Done | Partition by pickup_date, overwrite mode |
+```
+
+**Bạn có muốn save update này không? (Yes/No)**
+
+### Khi Nào KHÔNG Gợi Ý
+
+- Sửa lỗi nhỏ trong code (typo, formatting) — không cần update
+- Thay đổi comments/docstrings — không cần update
+- Test run không được lưu — không cần update
+- Chỉ read file, không thay đổi — không cần update
+
+### File Tham Khảo
+
+- **Template:** `docs/progress/PROGRESS.md`
+- **Current Status:** Xem mục "Current Status" trong PROGRESS.md
+- **Related:** `.agent/CURRENT_STATE.md` (workflow state)
+
+---
+
 ## Next Phase Preview
 
 **Phase 3: Warehouse (BigQuery)**

@@ -19,6 +19,3 @@ select
     tip_ratio,
     total_amount
 from source
-where trip_duration_min > 0
-  and trip_distance > 0
-  and total_amount > 0

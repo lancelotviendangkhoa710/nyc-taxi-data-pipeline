@@ -13,8 +13,10 @@
 3. .agent/conventions.md     ← Coding conventions & naming rules
 4. .agent/commit.md          ← Git commit standards (QUAN TRỌNG)
 5. .agent/workflow.md        ← ETL workflow, phase hiện tại, next steps
+   └─ Bao gồm: Progress Tracking Rule 📊
 6. .agent/decisions.md       ← Architectural decisions & design choices
-7. context.md                ← Full project context (root level)
+7. .agent/MASTER_CONTEXT.md  ← Workflow rules & state machine
+8. context.md                ← Full project context (root level)
 ```
 
 ---
@@ -41,6 +43,37 @@
 3. **KHÔNG tạo file mới nếu đã có pattern** — Tìm trong `spark/utils/`
 4. **LUÔN commit đúng chuẩn** — Đọc `.agent/commit.md`
 5. **LUÔN hỏi trước khi thay đổi architecture** — Đây là dự án học tập
+6. **LUÔN cập nhật Progress Tracking** — Xem `.agent/workflow.md` → Progress Tracking Rule
+
+---
+
+## Progress Tracking Rules 📊
+
+### Mục Đích
+Tự động gợi ý cập nhật `docs/progress/PROGRESS.md` mỗi khi hoàn thành task/commit mới để track progress dự án.
+
+### Khi Nào Gợi Ý?
+
+AI sẽ gợi ý cập nhật trong các tình huống:
+1. ✅ Hoàn thành một task từ TODO → Done
+2. ✅ Hoàn thành một Phase
+3. ⚠️ Phát hiện Blocker hoặc Risk mới
+4. 📈 Có thay đổi lớn trong Performance Metrics
+
+### Quy Trình (Hybrid Model)
+
+```
+AI Suggest → Human Review → Approve & Save
+```
+
+1. **AI Suggest:** Tạo draft update Markdown (không tự động commit)
+2. **Human Review:** Bạn đọc & sửa nếu cần
+3. **Approve & Save:** Bạn cho phép AI save vào file hoặc từ chối
+
+### File Tham Khảo
+- 📄 **Template:** `docs/progress/PROGRESS.md`
+- 📋 **Rule Chi Tiết:** `.agent/workflow.md` → "Progress Tracking Rule" section
+- 📊 **Current Status:** Xem `docs/progress/PROGRESS.md` → "Current Status"
 
 ---
 
