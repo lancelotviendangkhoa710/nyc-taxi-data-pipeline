@@ -1,0 +1,11 @@
+version: 2
+sources:
+  - name: warehouse
+    schema: public
+    tables:
+      - name: fact_trip
+      - name: dim_vendor
+      - name: dim_location
+      - name: dim_time
+      - name: dim_payment
+      - name: dim_rate

@@ -1,12 +1,4 @@
-"""
-spark/utils/spark_session.py
------------------------------
-Factory function tạo SparkSession chuẩn cho toàn bộ dự án.
 
-Usage:
-    from spark.utils.spark_session import get_spark
-    spark = get_spark()
-"""
 
 import sys
 import os

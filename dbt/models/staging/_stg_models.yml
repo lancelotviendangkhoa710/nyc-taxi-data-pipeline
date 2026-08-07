@@ -1,0 +1,11 @@
+version: 2
+
+models:
+  - name: stg_trip
+    description: "Staging model for NYC Taxi trips data"
+    columns:
+      - name: trip_id
+        description: "Primary key for each trip"
+        tests:
+          - unique
+          - not_null

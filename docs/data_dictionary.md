@@ -1,11 +1,12 @@
 # Từ điển dữ liệu: Kho dữ liệu NYC Taxi
 
 ## 1. Bảng sự kiện: `fact_trip`
+
 Bảng trung tâm chứa các chỉ số về chuyến đi.
 
 | Cột | Kiểu dữ liệu | Mô tả |
 | :--- | :--- | :--- |
-| `trip_id` | STRING | Khóa thay thế duy nhất |
+| `trip_id` | STRING | Khóa của bảng fact |
 | `vendor_key` | INT64 | Khóa ngoại tới `dim_vendor` |
 | `pickup_time_key` | INT64 | Khóa ngoại tới `dim_time` (Thời điểm đón) |
 | `dropoff_time_key` | INT64 | Khóa ngoại tới `dim_time` (Thời điểm trả) |
@@ -24,6 +25,7 @@ Bảng trung tâm chứa các chỉ số về chuyến đi.
 ## 2. Bảng danh mục (Dimension)
 
 ### `dim_location`
+
 | Cột | Kiểu dữ liệu | Mô tả |
 | :--- | :--- | :--- |
 | `location_key` | INT64 | Mã vùng TLC |
@@ -32,6 +34,7 @@ Bảng trung tâm chứa các chỉ số về chuyến đi.
 | `service_zone` | STRING | Khu vực dịch vụ |
 
 ### `dim_time`
+
 | Cột | Kiểu dữ liệu | Mô tả |
 | :--- | :--- | :--- |
 | `time_key` | INT64 | YYYYMMDDHH |
@@ -43,12 +46,14 @@ Bảng trung tâm chứa các chỉ số về chuyến đi.
 | `is_peak_hour` | BOOL | Cờ giờ cao điểm |
 
 ### `dim_vendor`
+
 | Cột | Kiểu dữ liệu | Mô tả |
 | :--- | :--- | :--- |
 | `vendor_key` | INT64 | 1=CMT, 2=VeriFone |
 | `vendor_name` | STRING | Tên nhà cung cấp |
 
 ### `dim_rate`
+
 | Cột | Kiểu dữ liệu | Mô tả |
 | :--- | :--- | :--- |
 | `rate_key` | INT64 | Mã loại cước |
