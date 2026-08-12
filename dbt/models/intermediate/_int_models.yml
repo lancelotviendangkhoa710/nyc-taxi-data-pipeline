@@ -1,0 +1,86 @@
+version: 2
+
+models:
+  - name: int_trips_with_dimensions
+    description: 'Enriched trip data with vendor, location, and time dimensions joined'
+    columns:
+      - name: trip_id
+        description: 'Unique trip identifier'
+        tests:
+          - not_null
+          - unique
+      - name: passenger_count
+        description: 'Number of passengers'
+        tests:
+          - not_null
+      - name: trip_distance
+        description: 'Trip distance in miles'
+        tests:
+          - not_null
+      - name: fare_amount
+        description: 'Fare amount in dollars'
+        tests:
+          - not_null
+      - name: tip_amount
+        description: 'Tip amount in dollars'
+      - name: total_amount
+        description: 'Total amount including fare, tip, and taxes'
+        tests:
+          - not_null
+      - name: vendor_name
+        description: 'Vendor name (Yellow, Green)'
+      - name: pickup_zone
+        description: 'Pickup zone name'
+      - name: dropoff_zone
+        description: 'Dropoff zone name'
+      - name: trip_date
+        description: 'Date of the trip'
+        tests:
+          - not_null
+      - name: pickup_hour
+        description: 'Hour of pickup (0-23)'
+      - name: is_weekend
+        description: 'Boolean flag for weekend trips'
+      - name: is_peak_hour
+        description: 'Boolean flag for peak hour trips'
+
+  - name: int_trip_metrics_by_vendor
+    description: 'Aggregated trip metrics grouped by vendor'
+    columns:
+      - name: vendor_name
+        description: 'Vendor name'
+        tests:
+          - not_null
+      - name: total_trips
+        description: 'Total number of trips'
+        tests:
+          - not_null
+      - name: average_fare
+        description: 'Average fare amount'
+        tests:
+          - not_null
+      - name: total_revenue
+        description: 'Sum of total amounts'
+        tests:
+          - not_null
+
+  - name: int_trip_metrics_by_location
+    description: 'Aggregated trip metrics grouped by pickup zone'
+    columns:
+      - name: pickup_zone
+        description: 'Pickup zone name'
+        tests:
+          - not_null
+      - name: total_trips
+        description: 'Total number of trips'
+        tests:
+          - not_null
+      - name: average_fare
+        description: 'Average fare amount'
+        tests:
+          - not_null
+      - name: total_revenue
+        description: 'Sum of total amounts'
+        tests:
+          - not_null
+

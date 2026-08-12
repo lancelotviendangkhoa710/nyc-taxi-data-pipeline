@@ -1,0 +1,69 @@
+version: 2
+
+models:
+  - name: fct_trip_summary
+    description: 'Final fact table for trip analysis with all dimensions and calculated metrics'
+    columns:
+      - name: trip_id
+        description: 'Unique trip identifier'
+        tests:
+          - not_null
+          - unique
+      - name: vendor_name
+        description: 'Vendor name (Yellow, Green)'
+        tests:
+          - not_null
+      - name: pickup_zone
+        description: 'Pickup zone name'
+      - name: dropoff_zone
+        description: 'Dropoff zone name'
+      - name: trip_date
+        description: 'Date of the trip'
+        tests:
+          - not_null
+      - name: pickup_hour
+        description: 'Hour of pickup (0-23)'
+      - name: is_weekend
+        description: 'Boolean flag for weekend trips'
+      - name: passenger_count
+        description: 'Number of passengers'
+      - name: trip_distance
+        description: 'Trip distance in miles'
+        tests:
+          - not_null
+      - name: fare_amount
+        description: 'Fare amount in dollars'
+        tests:
+          - not_null
+      - name: tip_amount
+        description: 'Tip amount in dollars'
+      - name: total_amount
+        description: 'Total amount including fare, tip, and taxes'
+        tests:
+          - not_null
+      - name: tip_category
+        description: 'Categorized tip level (High, Medium, Low)'
+
+  - name: fct_vendor_daily_metrics
+    description: 'Daily vendor metrics table with aggregated statistics'
+    columns:
+      - name: vendor_name
+        description: 'Vendor name'
+        tests:
+          - not_null
+      - name: total_trips
+        description: 'Total number of trips for vendor'
+        tests:
+          - not_null
+      - name: average_fare
+        description: 'Average fare amount for vendor'
+        tests:
+          - not_null
+      - name: total_revenue
+        description: 'Total revenue for vendor'
+        tests:
+          - not_null
+      - name: metric_date
+        description: 'Date of metric calculation'
+        tests:
+          - not_null

@@ -3,10 +3,10 @@ nyc_taxi:
   outputs:
     dev:
       type: postgres
-      host: {{ env_var('PG_HOST', 'localhost') }}
-      port: {{ env_var('PG_PORT', '5432') | int }}
-      user: {{ env_var('PG_USER', 'postgres') }}
-      password: {{ env_var('PG_PASSWORD', '') }}
-      dbname: {{ env_var('PG_DATABASE', 'postgres') }}
+      host: localhost
+      port: 5432
+      user: postgres
+      password: postgres
+      dbname: nyc_taxi
       schema: public
       threads: 4

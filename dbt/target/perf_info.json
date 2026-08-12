@@ -1,0 +1,45 @@
+{
+    "path_count": 149,
+    "parsed_path_count": 2,
+    "static_analysis_path_count": 1,
+    "static_analysis_parsed_path_count": 1,
+    "is_partial_parse_enabled": true,
+    "is_static_analysis_enabled": true,
+    "read_files_elapsed": 0.18495969998184592,
+    "load_macros_elapsed": 0.0018833999056369066,
+    "parse_project_elapsed": 2.3416681999806315,
+    "patch_sources_elapsed": 7.099995855242014e-05,
+    "process_manifest_elapsed": 0.0048362999223172665,
+    "load_all_elapsed": 3.353302099974826,
+    "projects": [
+        {
+            "project_name": "nyc_taxi",
+            "elapsed": 2.3411541000241414,
+            "parsers": [
+                {
+                    "parser": "model",
+                    "elapsed": 0.9525373000651598,
+                    "parsed_path_count": 1
+                },
+                {
+                    "parser": "test",
+                    "elapsed": 1.3885711000766605,
+                    "parsed_path_count": 1
+                }
+            ],
+            "parsed_path_count": 2
+        },
+        {
+            "project_name": "dbt_postgres",
+            "elapsed": 0,
+            "parsers": [],
+            "parsed_path_count": 0
+        },
+        {
+            "project_name": "dbt",
+            "elapsed": 0,
+            "parsers": [],
+            "parsed_path_count": 0
+        }
+    ]
+}
