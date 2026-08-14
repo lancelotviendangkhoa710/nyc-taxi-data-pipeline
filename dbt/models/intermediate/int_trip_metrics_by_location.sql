@@ -18,4 +18,3 @@ from enriched_trips
 where pickup_zone is not null
 group by pickup_zone
 having count(trip_id) > 0 and avg(fare_amount) > 0 and sum(total_amount) > 0
-

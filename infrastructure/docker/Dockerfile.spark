@@ -1,0 +1,53 @@
+# ============================================================================
+# Dockerfile cho Spark ETL - NYC Taxi Project
+# ============================================================================
+# Purpose: Build image để chạy Spark ETL jobs
+# Base: Python 3.12 slim (200MB vs 900MB full version)
+# ============================================================================
+
+FROM python:3.12-slim-bookworm
+
+# Cập nhật packages và cài Java (Spark cần Java)
+# apt-get clean + rm giúp giảm kích thước image
+RUN apt-get update && \
+    apt-get install -y openjdk-17-jdk-headless curl wget && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Set biến môi trường cho Java và Spark
+# PYTHONUNBUFFERED=1: Logs xuất hiện ngay (không buffer)
+# Tách thành nhiều ENV để $JAVA_HOME/$SPARK_HOME expand đúng ở dòng PATH
+ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+ENV SPARK_HOME=/opt/spark
+ENV PATH=$PATH:$JAVA_HOME/bin:$SPARK_HOME/bin
+ENV PYTHONUNBUFFERED=1
+
+# Copy pyproject.toml và cài Python packages
+COPY pyproject.toml /tmp/pyproject.toml
+RUN pip install --no-cache-dir "pyspark>=3.4.0" psycopg2-binary && rm /tmp/pyproject.toml
+
+# Download Spark 3.5.0 từ archive
+# Xóa examples/ và data/ folder để giảm kích thước
+RUN curl -fsSL https://archive.apache.org/dist/spark/spark-3.5.0/spark-3.5.0-bin-hadoop3.tgz | \
+    tar xz -C /opt && \
+    mv /opt/spark-3.5.0-bin-hadoop3 /opt/spark && \
+    rm -rf /opt/spark/examples /opt/spark/data
+
+# Set working directory
+WORKDIR /app
+
+# Copy source code (read-only để bảo vệ)
+COPY spark/ /app/spark/
+COPY .env /app/.env
+
+# Copy entrypoint script
+COPY infrastructure/docker/entrypoint-spark.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+# Chạy entrypoint script khi container start
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+
+# Health check: Kiểm tra Spark có hoạt động không
+# Chạy mỗi 30 giây, timeout 10 giây, retry 3 lần
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python -c "import pyspark; print('OK')" || exit 1

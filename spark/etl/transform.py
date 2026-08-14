@@ -56,5 +56,15 @@ def add_derived_columns(df: DataFrame) -> DataFrame:
 def remove_duplicates(df: DataFrame) -> DataFrame:
     logger.info("Đang loại bỏ các bản ghi trùng lặp...")
     df_cleaned = df.dropDuplicates()
-    return df_cleaned   
+    return df_cleaned
 
+
+def standardize_data_types(df: DataFrame) -> DataFrame:
+    logger.info("Đang chuẩn hóa kiểu dữ liệu của các cột...")
+    df_standardized = df.withColumn("tpep_pickup_datetime", F.col("tpep_pickup_datetime").cast("timestamp"))
+    df_standardized = df_standardized.withColumn("tpep_dropoff_datetime", F.col("tpep_dropoff_datetime").cast("timestamp"))
+    df_standardized = df_standardized.withColumn("passenger_count", F.col("passenger_count").cast("integer"))
+    df_standardized = df_standardized.withColumn("trip_distance", F.col("trip_distance").cast("double"))
+    df_standardized = df_standardized.withColumn("fare_amount", F.col("fare_amount").cast("double"))
+    df_standardized = df_standardized.withColumn("tip_amount", F.col("tip_amount").cast("double"))
+    return df_standardized

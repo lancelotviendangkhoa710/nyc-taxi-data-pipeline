@@ -1,0 +1,51 @@
+# ============================================================================
+# Dockerfile cho dbt - NYC Taxi Project
+# ============================================================================
+# Purpose: Build image để chạy dbt transformations
+# Base: Python 3.12 slim
+# ============================================================================
+
+FROM python:3.12-slim-bookworm
+
+# Cài git (dbt cần git để manage models versions)
+# Cài PostgreSQL client (psql - để connect database)
+RUN apt-get update && \
+    apt-get install -y git postgresql-client && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Set biến môi trường
+# PYTHONUNBUFFERED=1: Logs xuất hiện ngay (không buffer)
+ENV PYTHONUNBUFFERED=1
+
+# Tạo requirements.txt cho dbt
+# dbt-postgres: adapter để dbt kết nối PostgreSQL
+# psycopg2-binary: PostgreSQL driver cho Python
+RUN mkdir -p /tmp && cat > /tmp/requirements-dbt.txt << EOF
+dbt-postgres>=1.7.0
+psycopg2-binary>=2.9.0
+EOF
+
+# Cài dbt packages
+RUN pip install --no-cache-dir -r /tmp/requirements-dbt.txt && \
+    rm /tmp/requirements-dbt.txt
+
+# Set working directory
+WORKDIR /app
+
+# Copy dbt project
+COPY dbt/ /app/dbt/
+
+# Copy infrastructure (cho debugging/logging)
+COPY infrastructure/ /app/infrastructure:ro
+
+# Copy entrypoint script
+COPY infrastructure/docker/entrypoint-dbt.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+# Chạy entrypoint script khi container start
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+
+# Health check: Kiểm tra dbt có cài đúng không
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD dbt --version || exit 1
