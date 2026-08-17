@@ -16,6 +16,6 @@ specify.log
 credentials.json
 
 # Generated data, dbt build artifacts, and logs
-data/processed/
+data/
 dbt/target/
 dbt/logs/
