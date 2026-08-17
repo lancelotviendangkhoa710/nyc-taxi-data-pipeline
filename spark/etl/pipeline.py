@@ -1,3 +1,5 @@
+import os
+
 from pyspark.sql import DataFrame
 from spark.config import (
     RAW_DIR,
@@ -97,6 +99,15 @@ class YellowTaxiETLPipeline:
                 
             # 3. Transform
             df_transformed = self.transform(df_raw)
+
+            # Optional cap for fast, repeatable test runs.
+            test_row_limit = os.getenv("ETL_TEST_ROW_LIMIT")
+            if test_row_limit:
+                row_limit = int(test_row_limit)
+                if row_limit <= 0:
+                    raise ValueError("ETL_TEST_ROW_LIMIT must be a positive integer")
+                self.logger.info(f"Limiting test run to {row_limit} transformed rows")
+                df_transformed = df_transformed.limit(row_limit)
             
             # 4. Load
             self.load(df_transformed)

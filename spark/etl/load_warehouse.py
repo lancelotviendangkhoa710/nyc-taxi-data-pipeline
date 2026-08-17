@@ -112,7 +112,6 @@ class YellowTaxiWarehouseLoader:
         self._write_to_postgres(df_rate, "dim_rate", mode="overwrite")
 
     def load_dim_location(self) -> None:
-        """Tải dữ liệu zones lookup từ GitHub và load lên DIM_LOCATION"""
         logger.info("Đang xử lý dữ liệu chiều DIM_LOCATION...")
         csv_path = os.path.join(str(RAW_DIR), "taxi_zone_lookup.csv")
         

@@ -1,133 +1,60 @@
 # Project Progress Tracking — NYC Taxi Data Engineering
 
-> **File này được cập nhật định kỳ sau mỗi khi hoàn thành task/commit mới.**
-> **Trigger:** AI gợi ý → Người dùng review → Approve trước khi lưu
+> Updated: 2026-08-17. This status reflects the source code and repository artefacts currently present; it does not replace an end-to-end deployment validation.
 
----
+## Current Status
 
-## 📊 Current Status (Trạng thái hiện tại)
+| Attribute | Value |
+|---|---|
+| Current phase | Phase 4 — dbt & analytics |
+| Overall progress | 80% |
+| Last updated | 2026-08-17 |
+| Last completed | Adaptive Spark write partition sizing |
 
-| Thuộc tính | Giá trị |
-|-----------|--------|
-| **Current Phase** | Phase 2 — Spark ETL |
-| **Overall Progress** | 40% |
-| **Last Updated** | 2026-08-07 |
-| **Last Completed** | Setup config, logger, extract, validate, transform |
+## Completed Milestones
 
----
+| # | Milestone | Status | Evidence |
+|---|---|---|---|
+| 1 | Data ingestion and Spark configuration | Done | `spark/config.py`, `spark/etl/fetch_taxi_data.py` |
+| 2 | Spark ETL pipeline | Done | Extract, validate, transform, load, and orchestration modules in `spark/etl/` |
+| 3 | Processed Parquet output | Done | Date-partitioned output under `data/processed/yellow_taxi/` |
+| 4 | PostgreSQL star schema and warehouse loader | Done | DDL in `infrastructure/warehouse/ddl/` and `spark/etl/load_warehouse.py` |
+| 5 | Docker development environment | Done | Compose files, PostgreSQL initialization, Spark and dbt entrypoints in `infrastructure/docker/` |
+| 6 | dbt transformation layers | Done | Staging, intermediate, and mart models in `dbt/models/` |
+| 7 | Python pipeline tests | Done | `tests/test_pipeline.py` |
+| 8 | Adaptive Spark write partition sizing | Done | `spark/etl/load.py`, `docs/partitioning_strategy.md` |
 
-## ✅ Milestones Completed
+## Current Work
 
-| # | Milestone | Date | Status | Notes |
-|---|-----------|------|--------|-------|
-| 1 | Project setup & config | 2026-07-08 | ✅ Done | `spark/config.py` with centralized settings |
-| 2 | Logger setup | 2026-07-08 | ✅ Done | `spark/utils/logger.py` factory pattern |
-| 3 | Extract module | 2026-07-15 | ✅ Done | Read parquet, filter columns from config |
-| 4 | Validate module | 2026-07-20 | ✅ Done | Data quality checks (nulls, ranges, outliers) |
-| 5 | Transform module | 2026-07-25 | ✅ Done | Derived columns (trip_duration_min, tip_ratio, pickup_date) |
+| # | Task | Status | Notes |
+|---|---|---|---|
+| 1 | Validate complete pipeline in Docker | Pending | Run Spark ETL, PostgreSQL load, dbt run, and dbt test as one reproducible workflow. |
+| 2 | Verify dbt data-quality results | Pending | Existing dbt artefacts indicate prior runs; record a fresh successful run. |
 
----
+## Remaining Work
 
-## 🔄 Current Tasks (In Progress)
+| # | Task | Priority | Depends on |
+|---|---|---|---|
+| 1 | Build Metabase dashboards | High | Validated warehouse and dbt marts |
+| 2 | Document dashboard metrics and refresh process | Medium | Metabase dashboards |
+| 3 | Add production scheduling/orchestration (for example Airflow) | Medium | Stable end-to-end workflow |
+| 4 | Add CI for Python and dbt tests | Medium | Repeatable test commands |
 
-| # | Task | Assignee | Status | Blockers | Target Date |
-|---|------|----------|--------|----------|-------------|
-| - | _(None at the moment)_ | - | - | - | - |
+## Phase Roadmap
 
----
-
-## 📋 Upcoming Tasks (TODO)
-
-| # | Task | Priority | Effort | Depends On | Target Date |
-|---|------|----------|--------|-----------|-------------|
-| 1 | ETL Load module | HIGH | 4h | Transform ✅ | 2026-08-10 |
-| 2 | ETL Main orchestration | HIGH | 3h | Load | 2026-08-12 |
-| 3 | Unit tests | MEDIUM | 6h | All ETL modules | 2026-08-15 |
-| 4 | Setup BigQuery warehouse | HIGH | 8h | Phase 2 completion | 2026-08-20 |
-| 5 | Load to warehouse module | HIGH | 5h | BigQuery setup | 2026-08-25 |
-
----
-
-## ⚠️ Blockers & Risks
-
-| ID | Issue | Severity | Status | Resolution | Owner |
-|----|-------|----------|--------|-----------|-------|
-| B1 | Java environment setup on Windows | MEDIUM | 🟢 Resolved | Hadoop binaries configured in PATH | Dev |
-| R1 | PostgreSQL connectivity | LOW | 🟢 Mitigated | Docker Compose setup working | Infra |
-
----
-
-## 📈 Performance Metrics
-
-| Metric | Value | Date | Notes |
-|--------|-------|------|-------|
-| Raw data rows ingested | 50M+ | 2026-07-15 | Yellow Taxi data (6 months) |
-| Data quality pass rate | 85% | 2026-07-25 | After validation filters |
-| Execution time (ETL pipeline) | ~15 min | 2026-07-25 | Local Spark mode `local[*]` |
-| Disk space (processed data) | 2.5GB | 2026-07-26 | Partitioned Parquet format |
-
----
-
-## 🗺️ Phase Roadmap
-
-```
-Phase 1: Data Ingestion ✅
-    └─ Fetch NYC TLC Parquet files
-    └─ Setup raw data directory
-
-Phase 2: Spark ETL (🔄 In Progress)
-    └─ Extract: Read & filter columns ✅
-    └─ Validate: Data quality checks ✅
-    └─ Transform: Derived columns ✅
-    └─ Load: Write partitioned Parquet 📋 TODO
-    └─ Main: Orchestrate pipeline 📋 TODO
-
-Phase 3: Warehouse & BigQuery 📋
-    └─ Setup GCP project & BigQuery
-    └─ Create star schema (FACT_TRIP, DIM_*)
-    └─ Load to warehouse
-
-Phase 4: dbt & Analytics 📋
-    └─ Init dbt project
-    └─ Staging layer → Intermediate → Mart
-    └─ Create analytics views
+```text
+Phase 1: Data ingestion                 Done
+Phase 2: Spark ETL                      Done
+Phase 3: PostgreSQL warehouse           Done
+Phase 4: dbt & analytics                In progress
+  ├─ dbt staging/intermediate/marts     Done
+  ├─ End-to-end validation              Pending
+  └─ Metabase dashboards                Pending
+Phase 5: Production orchestration       Planned
 ```
 
----
+## Notes
 
-## 📝 Recent Updates
-
-### 2026-08-07
-- **Action:** Created Progress Tracking rule and document
-- **Files:** `.agent/workflow.md`, `.agent/README.md`, `docs/progress/PROGRESS.md`
-- **Next:** Implement ETL Load module
-
-### 2026-07-25
-- **Completed:** Transform module with derived columns
-- **Files:** `spark/etl/transform.py`
-- **Next:** Create Load module
-
-### 2026-07-20
-- **Completed:** Validate module with data quality checks
-- **Files:** `spark/etl/validate.py`
-- **Next:** Transform module
-
----
-
-## 🎯 Key Notes
-
-- **Architecture:** Batch ETL pipeline (Spark → PostgreSQL)
-- **Tech Stack:** Python 3.12, PySpark, PostgreSQL, Docker
-- **Development Mode:** Local Spark mode `local[*]`
-- **Code Standards:** Type hints, docstrings, error handling, logging
-- **Git Workflow:** Feature branches → PR → Merge to main
-
----
-
-## 📚 Related Documents
-
-- `.agent/workflow.md` — Detailed ETL workflow
-- `docs/architecture.md` — System architecture
-- `docs/data_model.md` — Star schema design
-- `docs/IMPLEMENT_PLAN.md` — Feature implementation plans
-- `.agent/README.md` — AI agent instructions
+- The full pipeline writes processed Parquet locally and loads the warehouse through PostgreSQL JDBC.
+- Docker entrypoints validate dependencies before running the Spark ETL or dbt workflow.
+- `load_warehouse.py` contains PostgreSQL loading logic, although one pipeline log label still refers to BigQuery and should be corrected in a later cleanup.

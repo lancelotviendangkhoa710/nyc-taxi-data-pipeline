@@ -5,7 +5,9 @@ import os
 logger = get_logger("spark.etl.extract")
 
 def get_spark_session() -> SparkSession:
-    setup_java_env()
+    import platform
+    if platform.system() == "Windows":
+        setup_java_env()
 
     spark = (
         SparkSession.builder

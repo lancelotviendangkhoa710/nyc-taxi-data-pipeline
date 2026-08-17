@@ -1,5 +1,5 @@
-
 import os
+import platform as _platform
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -45,12 +45,25 @@ SPARK_APP_NAME   = "nyc-taxi"
 SPARK_MASTER     = "local[*]"
 SPARK_LOG_LEVEL  = "WARN"
 
+# PostgreSQL JDBC: Docker đã baked JAR vào image; Windows dùng packages để auto-download
+if _platform.system() == "Windows":
+    _pg_jdbc = {"spark.jars.packages": "org.postgresql:postgresql:42.7.1"}
+else:
+    _pg_jdbc = {"spark.jars": "/opt/spark/jars/postgresql-42.7.1.jar"}
+
 SPARK_CONFIGS = {
     "spark.sql.shuffle.partitions": "8",
+    "spark.sql.adaptive.advisoryPartitionSizeInBytes": str(
+        int(
+            os.getenv(
+                "ETL_TARGET_FILE_SIZE_MB",
+                "512" if os.getenv("ETL_PARTITION_PROFILE", "standard").lower() == "heavy" else "256",
+            )
+        ) * 1024 * 1024
+    ),
     "spark.driver.memory": "4g",
     "spark.sql.adaptive.enabled": "true",
-    # PostgreSQL JDBC Driver for Spark
-    "spark.jars.packages": "org.postgresql:postgresql:42.7.1",
+    **_pg_jdbc,
 }
 
 # ─────────────────────────────────────────
@@ -74,7 +87,13 @@ YELLOW_TAXI_PATTERN  = "yellow_tripdata_*.parquet"
 # 7. ETL SETTINGS
 # ─────────────────────────────────────────
 # Số partitions khi ghi ra file
-WRITE_PARTITIONS = 4
+ETL_PARTITION_PROFILE = os.getenv("ETL_PARTITION_PROFILE", "standard").lower()
+_DEFAULT_TARGET_FILE_SIZE_MB = 512 if ETL_PARTITION_PROFILE == "heavy" else 256
+TARGET_FILE_SIZE_BYTES = int(
+    os.getenv("ETL_TARGET_FILE_SIZE_MB", str(_DEFAULT_TARGET_FILE_SIZE_MB))
+) * 1024 * 1024
+MIN_WRITE_PARTITIONS = int(os.getenv("ETL_MIN_WRITE_PARTITIONS", "1"))
+MAX_WRITE_PARTITIONS = int(os.getenv("ETL_MAX_WRITE_PARTITIONS", "2000"))
 
 # Columns được giữ lại sau ETL
 SELECTED_COLUMNS = [

@@ -14,3 +14,8 @@ specify.log
 .env
 *.pem
 credentials.json
+
+# Generated data, dbt build artifacts, and logs
+data/processed/
+dbt/target/
+dbt/logs/
