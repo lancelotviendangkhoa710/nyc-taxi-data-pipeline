@@ -9,16 +9,7 @@ logger = get_logger(__name__)
 
 
 def fetch_data(start_date: str, end_date: str) -> None:
-    """
-    Tải file Parquet Yellow Taxi từ NYC TLC website cho khoảng thời gian chỉ định.
-    
-    Args:
-        start_date: Ngày bắt đầu (format: YYYY-MM)
-        end_date: Ngày kết thúc (format: YYYY-MM)
-        
-    Raises:
-        ValueError: Nếu format date không đúng
-    """
+
     RAW_DIR.mkdir(parents=True, exist_ok=True)
     
     try:
