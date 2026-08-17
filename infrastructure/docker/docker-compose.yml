@@ -23,7 +23,7 @@ services:
       - nyc-taxi-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d nyc_taxi"]
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d nyc_taxi" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -34,34 +34,33 @@ services:
   spark-etl:
     # Build image từ Dockerfile.spark
     build:
-      context: ../..  # Project root
+      context: ../.. # Project root
       dockerfile: infrastructure/docker/Dockerfile.spark
-    
+
     container_name: spark-etl-container
-    
+
     # Load biến môi trường từ .env file
     env_file:
       - ../../.env
-    
+
     # Volumes - Mount thư mục từ host vào container
     # Format: host_path:container_path:permission
     # :ro = read-only (bảo vệ source code khỏi bị sửa)
     volumes:
-      - ../../data:/app/data              # Data folder (read-write)
-      - ../../spark:/app/spark:ro         # Source code (read-only)
+      - ../../data:/app/data # Data folder (read-write)
+      - ../../spark:/app/spark:ro # Source code (read-only)
       - ../../infrastructure:/app/infrastructure:ro
-    
+
     # Connect tới docker network (để container giao tiếp với nhau)
     networks:
       - nyc-taxi-net
-    
+
     # Không restart nếu container exit (để debug được)
     restart: "no"
-    
+
     depends_on:
       postgres:
         condition: service_healthy
-
 
   # ========================================================================
   # dbt Service - Transform data từ Spark ETL
@@ -71,33 +70,30 @@ services:
     build:
       context: ../..
       dockerfile: infrastructure/docker/Dockerfile.dbt
-    
+
     container_name: dbt-transformer-container
-    
+
     # Load biến môi trường
     env_file:
       - ../../.env
-    
+
     # Volumes
     volumes:
-      - ../../dbt:/app/dbt                # dbt project (read-write)
+      - ../../dbt:/app/dbt # dbt project (read-write)
       - ../../infrastructure:/app/infrastructure:ro
-    
+
     # Connect tới docker network
     networks:
       - nyc-taxi-net
-    
+
     # Không restart nếu exit
     restart: "no"
-    
-    # ⭐ QUAN TRỌNG: dbt chỉ chạy khi Spark ETL hoàn thành
-    # service_completed_successfully: chờ Spark exit với code 0
+
     depends_on:
       postgres:
         condition: service_healthy
       spark-etl:
         condition: service_completed_successfully
-
 
 # ============================================================================
 # Docker Networks
@@ -109,7 +105,7 @@ services:
 # ============================================================================
 networks:
   nyc-taxi-net:
-    driver: bridge  # Bridge driver (default, tạo network riêng biệt)
+    driver: bridge # Bridge driver (default, tạo network riêng biệt)
 
 volumes:
-  postgres_data:  # Persistent storage cho PostgreSQL
+  postgres_data: # Persistent storage cho PostgreSQL

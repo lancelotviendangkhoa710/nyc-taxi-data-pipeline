@@ -33,11 +33,12 @@ fi
 
 # Kiểm tra database connection
 echo "✓ Checking PostgreSQL connection..."
-if ! psql -h "$PG_HOST" -U "$PG_USER" -d "$PG_DATABASE" -c "SELECT 1" > /dev/null 2>&1; then
+if ! psql_error=$(PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -U "$PG_USER" -d "$PG_DATABASE" -c "SELECT 1" 2>&1); then
     echo "❌ PostgreSQL connection failed!"
     echo "  Host: $PG_HOST"
     echo "  User: $PG_USER"
     echo "  Database: $PG_DATABASE"
+    echo "  Detail: $psql_error"
     exit 1
 fi
 echo "✓ PostgreSQL connected!"

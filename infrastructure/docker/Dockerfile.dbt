@@ -21,14 +21,9 @@ ENV PYTHONUNBUFFERED=1
 # Tạo requirements.txt cho dbt
 # dbt-postgres: adapter để dbt kết nối PostgreSQL
 # psycopg2-binary: PostgreSQL driver cho Python
-RUN mkdir -p /tmp && cat > /tmp/requirements-dbt.txt << EOF
-dbt-postgres>=1.7.0
-psycopg2-binary>=2.9.0
-EOF
-
-# Cài dbt packages
-RUN pip install --no-cache-dir -r /tmp/requirements-dbt.txt && \
-    rm /tmp/requirements-dbt.txt
+RUN pip install --no-cache-dir \
+    "dbt-postgres>=1.7.0" \
+    "psycopg2-binary>=2.9.0"
 
 # Set working directory
 WORKDIR /app
@@ -37,7 +32,7 @@ WORKDIR /app
 COPY dbt/ /app/dbt/
 
 # Copy infrastructure (cho debugging/logging)
-COPY infrastructure/ /app/infrastructure:ro
+COPY infrastructure/ /app/infrastructure/
 
 # Copy entrypoint script
 COPY infrastructure/docker/entrypoint-dbt.sh /usr/local/bin/entrypoint.sh
