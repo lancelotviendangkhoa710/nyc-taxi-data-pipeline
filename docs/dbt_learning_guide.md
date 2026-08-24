@@ -7,7 +7,7 @@ dbt (data build tool) là công cụ **transform** trong pipeline ELT. Nó **kh�
 Trong project này:
 
 ```
-PySpark load data → PostgreSQL (fact_trip, dim_*) → dbt transform → mart tables → Metabase
+PySpark load data → PostgreSQL (fact_trip, dim_*) → dbt transform → mart tables → Power BI
 ```
 
 dbt đọc từ bảng nguồn trong PostgreSQL, chạy SQL tạo ra bảng/view mới cũng trong PostgreSQL.
