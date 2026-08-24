@@ -46,7 +46,7 @@ Power BI  --  Interactive Analytics Dashboard
 ## Tech Stack
 
 | Technology | Version | Purpose |
-|:---:|:---:|:---|
+| :---: | :---: | :--- |
 | ![Python](https://img.shields.io/badge/-Python-3776AB?logo=python&logoColor=white) | `3.12+` | Core language for ETL |
 | ![Spark](https://img.shields.io/badge/-Apache%20Spark-E25A1C?logo=apachespark&logoColor=white) | `3.x` | Distributed data processing |
 | ![PostgreSQL](https://img.shields.io/badge/-PostgreSQL-336791?logo=postgresql&logoColor=white) | `16` | Data warehouse — star schema |
@@ -57,6 +57,7 @@ Power BI  --  Interactive Analytics Dashboard
 | **JDBC** | `N/A` | Spark to PostgreSQL connectivity |
 
 ---
+
 ## Project Structure
 
 ```
@@ -143,7 +144,7 @@ NYC_Taxi_Project/
 ## Data Model — Star Schema
 
 | Table | Type | Description |
-|:---|:---:|:---|
+| :--- | :---: | :--- |
 | `fact_trip` | Fact | Trip records with measures (fare, distance, duration) |
 | `dim_vendor` | Dimension | Taxi vendor information |
 | `dim_payment` | Dimension | Payment type lookup |
@@ -152,12 +153,13 @@ NYC_Taxi_Project/
 | `dim_time` | Dimension | Time dimension for temporal analysis |
 
 ---
+
 ## Quick Start
 
 ### Prerequisites
 
 | Requirement | Version |
-|:---|:---:|
+| :--- | :---: |
 | Python | `3.12+` |
 | Java (Eclipse Adoptium) | `21` |
 | Docker & Docker Compose | `Latest` |
@@ -277,10 +279,10 @@ git branch -d feature/dbt-transformations
 ## Project Status
 
 | Component | Status |
-|:---|:---:|
+| :--- | :---: |
 | Spark ETL Pipeline | Completed |
 | PostgreSQL Star Schema | Completed |
-| dbt Transformation Layer | In Progress |
+| dbt Transformation Layer | Completed |
 | Power BI Dashboards | Planned |
 | Apache Airflow Orchestration | Planned |
 
