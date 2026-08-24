@@ -80,7 +80,7 @@ PG_JDBC_URL = f"jdbc:postgresql://{PG_HOST}:{PG_PORT}/{PG_DATABASE}"
 # ─────────────────────────────────────────
 # 6. FILE PATTERNS
 # ─────────────────────────────────────────
-# Tên file parquet theo tháng: yellow_tripdata_YYYY-MM.parquet
+
 YELLOW_TAXI_PATTERN  = "yellow_tripdata_*.parquet"
 
 # ─────────────────────────────────────────

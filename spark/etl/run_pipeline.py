@@ -18,7 +18,7 @@ def main():
     # 1. Extract
     print("\n[1/3] EXTRACT: Khởi tạo Spark & đọc dữ liệu raw...")
     spark = get_spark_session()
-    df_raw = extract_data(spark,RAW_DIR, YELLOW_TAXI_PATTERN)
+    df_raw = extract_data(spark,RAW_DIR, "yellow_tripdata_2026-01.parquet")#YELLOW_TAXI_PATTERN
     df_raw.show(5, truncate=False)
     raw_count = df_raw.count()
     print(f"  → Đọc được {raw_count:,} bản ghi")

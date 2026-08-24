@@ -45,7 +45,7 @@ Nền tảng được thiết kế theo mô hình **Batch Processing** với cá
                   ▼
 ┌─────────────────────────────────────────────────────────┐
 │             LỚP TRÌNH BÀY (PRESENTATION)                │
-│                  Metabase                               │
+│                  Power BI                                │
 │    Bảng điều khiển Doanh thu / Chuyến đi / Tiền boa     │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -75,7 +75,7 @@ Tất cả các bước trên được lập lịch và giám sát bởi **Apach
 | Môi trường | Mô tả |
 | --- | --- |
 | **Hybrid (hiện tại)** | PySpark `local[*]`, PostgreSQL, dbt local |
-| **Future: Docker** | Toàn bộ local stack (Airflow, Metabase, dbt) chạy bằng `docker compose up` |
+| **Future: Docker** | Toàn bộ local stack (Airflow, Power BI, dbt) chạy bằng `docker compose up` |
 
 ---
 
