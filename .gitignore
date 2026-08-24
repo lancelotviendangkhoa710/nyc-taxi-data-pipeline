@@ -17,5 +17,9 @@ credentials.json
 
 # Generated data, dbt build artifacts, and logs
 data/
+benchmarks/results/
 dbt/target/
 dbt/logs/
+#agent files
+.agent/
+.agents/
