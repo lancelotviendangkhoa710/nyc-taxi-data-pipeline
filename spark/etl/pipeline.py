@@ -1,4 +1,4 @@
-import os
+﻿import os
 
 from pyspark.sql import DataFrame
 from spark.config import (
@@ -15,78 +15,69 @@ from spark.etl.load import load_data
 from spark.utils.logger import get_logger
 
 class YellowTaxiETLPipeline:
-    """
-    Class điều phối toàn bộ luồng ETL cho dữ liệu Yellow Taxi trên Spark.
-    Theo phong cách OOP Hybrid: quản lý tài nguyên và orchestration qua Class, 
-    nhưng gọi các hàm xử lý phi trạng thái (functional) để biến đổi dữ liệu.
-    """
+
     def __init__(self):
         self.logger = get_logger("spark.etl.pipeline")
         self.spark = None
-        
-        # Xác định danh sách các cột bắt buộc phải có trong schema raw trước khi transform
-        # Loại trừ 3 cột phái sinh (derived) được sinh ra sau bước transform
+    
         derived_cols = ["trip_duration_min", "tip_ratio", "pickup_date"]
         self.required_cols = [col for col in SELECTED_COLUMNS if col not in derived_cols]
         
     def initialize_spark(self):
-        self.logger.info("Khởi tạo Spark Session...")
+        self.logger.info("Khá»Ÿi táº¡o Spark Session...")
         self.spark = get_spark_session()
         self.spark.sparkContext.setLogLevel(SPARK_LOG_LEVEL)
-        self.logger.info(f"Đã cấu hình log level: {SPARK_LOG_LEVEL}")
+        self.logger.info(f"ÄÃ£ cáº¥u hÃ¬nh log level: {SPARK_LOG_LEVEL}")
         
     def extract(self) -> DataFrame:
-        self.logger.info("=== BẮT ĐẦU PHẦN EXTRACT ===")
+        self.logger.info("=== Báº®T Äáº¦U PHáº¦N EXTRACT ===")
         df = extract_data(self.spark, str(RAW_DIR), YELLOW_TAXI_PATTERN)
         return df
         
     def validate(self, df: DataFrame) -> bool:
-        self.logger.info("=== BẮT ĐẦU PHẦN VALIDATE ===")
+        self.logger.info("=== Báº®T Äáº¦U PHáº¦N VALIDATE ===")
         
-        self.logger.info("Đang kiểm tra schema đầu vào...")
+        self.logger.info("Äang kiá»ƒm tra schema Ä‘áº§u vÃ o...")
         if not validate_schema(df, self.required_cols):
-            self.logger.error("Kiểm tra schema thất bại!")
+            self.logger.error("Kiá»ƒm tra schema tháº¥t báº¡i!")
             return False
             
-        self.logger.info("Đang kiểm tra DataFrame rỗng...")
+        self.logger.info("Äang kiá»ƒm tra DataFrame rá»—ng...")
         if is_empty_dataframe(df):
-            self.logger.error("DataFrame nguồn không có dòng dữ liệu nào!")
+            self.logger.error("DataFrame nguá»“n khÃ´ng cÃ³ dÃ²ng dá»¯ liá»‡u nÃ o!")
             return False
             
-        self.logger.info("Tất cả các kiểm tra validate thành công!")
+        self.logger.info("Táº¥t cáº£ cÃ¡c kiá»ƒm tra validate thÃ nh cÃ´ng!")
         return True
         
     def transform(self, df: DataFrame) -> DataFrame:
-        self.logger.info("=== BẮT ĐẦU PHẦN TRANSFORM ===")
+        self.logger.info("=== TRANSFORMING ===")
         
-        # Xử lý các giá trị Null
+        # Xá»­ lÃ½ cÃ¡c giÃ¡ trá»‹ Null
         df_nulls_handled = handle_null_values(df)
         
-        # Lọc Outliers
+        # Lá»c Outliers
         df_filtered = filter_outliers(df_nulls_handled)
         
-        # Thêm các cột phái sinh
+        # ThÃªm cÃ¡c cá»™t phÃ¡i sinh
         df_transformed = add_derived_columns(df_filtered)
         
         return df_transformed
         
     def load(self, df: DataFrame) -> None:
-        self.logger.info("=== BẮT ĐẦU PHẦN LOAD ===")
+        self.logger.info("=== Starting Load ===")
         output_path = str(PROCESSED_DIR / "yellow_taxi")
         load_data(df, output_path, partition_col="pickup_date")
         
     def load_warehouse(self, df: DataFrame) -> None:
-        self.logger.info("=== BẮT ĐẦU PHẦN LOAD WAREHOUSE (BIGQUERY) ===")
+        self.logger.info("=== Starting Load to Warehouse ( PostgreSQL) ===")
         from spark.etl.load_warehouse import YellowTaxiWarehouseLoader
         loader = YellowTaxiWarehouseLoader(self.spark)
         loader.load_all(df)
         
     def run(self):
-        """
-        Orchestration chạy toàn bộ pipeline.
-        Tự động dọn dẹp và dừng Spark Session an toàn kể cả khi có lỗi xảy ra.
-        """
-        self.logger.info("=== BẮT ĐẦU CHẠY ETL PIPELINE (OOP) ===")
+      
+        self.logger.info("=== Báº®T Äáº¦U CHáº Y ETL PIPELINE (OOP) ===")
         try:
             self.initialize_spark()
             
@@ -95,7 +86,7 @@ class YellowTaxiETLPipeline:
             
             # 2. Validate
             if not self.validate(df_raw):
-                raise ValueError("Dữ liệu nguồn không hợp lệ để xử lý!")
+                raise ValueError("Dá»¯ liá»‡u nguá»“n khÃ´ng há»£p lá»‡ Ä‘á»ƒ xá»­ lÃ½!")
                 
             # 3. Transform
             df_transformed = self.transform(df_raw)
@@ -117,19 +108,20 @@ class YellowTaxiETLPipeline:
                 self.load_warehouse(df_transformed)
             except Exception as bq_err:
                 self.logger.warning(
-                    f"Không thể tự động tải dữ liệu lên BigQuery (Có thể do tài khoản Sandbox chưa kích hoạt Billing/Thanh toán).\n"
-                    f"Chi tiết lỗi: {bq_err}\n"
-                    f"Dữ liệu đã được xử lý và lưu thành công tại thư mục processed cục bộ (data/processed/yellow_taxi/). "
-                    f"Bạn có thể tiếp tục tải lên thủ công bằng cách sử dụng giao diện web Console."
+                    f"KhÃ´ng thá»ƒ tá»± Ä‘á»™ng táº£i dá»¯ liá»‡u lÃªn BigQuery (CÃ³ thá»ƒ do tÃ i khoáº£n Sandbox chÆ°a kÃ­ch hoáº¡t Billing/Thanh toÃ¡n).\n"
+                    f"Chi tiáº¿t lá»—i: {bq_err}\n"
+                    f"Dá»¯ liá»‡u Ä‘Ã£ Ä‘Æ°á»£c xá»­ lÃ½ vÃ  lÆ°u thÃ nh cÃ´ng táº¡i thÆ° má»¥c processed cá»¥c bá»™ (data/processed/yellow_taxi/). "
+                    f"Báº¡n cÃ³ thá»ƒ tiáº¿p tá»¥c táº£i lÃªn thá»§ cÃ´ng báº±ng cÃ¡ch sá»­ dá»¥ng giao diá»‡n web Console."
                 )
             
-            self.logger.info("=== ETL PIPELINE HOÀN THÀNH THÀNH CÔNG ===")
+            self.logger.info("=== ETL PIPELINE COMPLETED SUCCESSFULLY ===")
             
         except Exception as e:
-            self.logger.error(f"ETL Pipeline gặp lỗi nghiêm trọng: {e}", exc_info=True)
+            self.logger.error(f"ETL Pipeline failed extren: {e}", exc_info=True)
             raise e
         finally:
             if self.spark is not None:
-                self.logger.info("Đang giải phóng tài nguyên Spark Session...")
+                self.logger.info("Äang giáº£i phÃ³ng tÃ i nguyÃªn Spark Session...")
                 self.spark.stop()
-                self.logger.info("Spark Session đã dừng thành công.")
+                self.logger.info("Spark Session Ä‘Ã£ dá»«ng thÃ nh cÃ´ng.")
+

@@ -21,5 +21,4 @@ benchmarks/results/
 dbt/target/
 dbt/logs/
 #agent files
-.agent/
-.agents/
+.agent

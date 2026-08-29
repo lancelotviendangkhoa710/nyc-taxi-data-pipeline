@@ -1,28 +1,28 @@
-CREATE OR REPLACE TABLE fact_trip (
-    trip_id STRING OPTIONS(description="Mã surrogate key duy nhất cho mỗi chuyến đi"),
-    vendor_key INT64 OPTIONS(description="FK liên kết DIM_VENDOR"),
-    pickup_time_key INT64 OPTIONS(description="FK liên kết DIM_TIME (Thời gian đón khách)"),
-    dropoff_time_key INT64 OPTIONS(description="FK liên kết DIM_TIME (Thời gian trả khách)"),
-    pickup_location_key INT64 OPTIONS(description="FK liên kết DIM_LOCATION (Điểm đón)"),
-    dropoff_location_key INT64 OPTIONS(description="FK liên kết DIM_LOCATION (Điểm trả)"),
-    payment_key INT64 OPTIONS(description="FK liên kết DIM_PAYMENT"),
-    rate_key INT64 OPTIONS(description="FK liên kết DIM_RATE"),
-    passenger_count INT64 OPTIONS(description="Số lượng hành khách"),
-    trip_distance FLOAT64 OPTIONS(description="Khoảng cách chuyến đi (miles)"),
-    trip_duration_min FLOAT64 OPTIONS(description="Thời gian di chuyển (phút)"),
-    fare_amount FLOAT64 OPTIONS(description="Tiền cước cơ bản"),
-    extra FLOAT64 OPTIONS(description="Phụ phí"),
-    mta_tax FLOAT64 OPTIONS(description="Thuế MTA"),
-    tip_amount FLOAT64 OPTIONS(description="Tiền tip"),
-    tip_ratio FLOAT64 OPTIONS(description="Tỉ lệ tip / cước gốc"),
-    tolls_amount FLOAT64 OPTIONS(description="Phí cầu đường"),
-    improvement_surcharge FLOAT64 OPTIONS(description="Phụ phí cải tiến"),
-    congestion_surcharge FLOAT64 OPTIONS(description="Phụ phí tắc đường"),
-    airport_fee FLOAT64 OPTIONS(description="Phí sân bay"),
-    cbd_congestion_fee FLOAT64 OPTIONS(description="Phí tắc đường CBD"),
-    total_amount FLOAT64 OPTIONS(description="Tổng tiền thanh toán"),
-    store_and_fwd_flag STRING OPTIONS(description="Cờ lưu trữ trước khi gửi"),
-    pickup_date DATE OPTIONS(description="Ngày đón khách (dùng để phân vùng)")
-)
-PARTITION BY pickup_date
-CLUSTER BY pickup_location_key, dropoff_location_key, vendor_key;
+CREATE TABLE IF NOT EXISTS fact_trip (
+    trip_id               VARCHAR PRIMARY KEY,
+    vendor_key            BIGINT,
+    pickup_time_key       BIGINT,
+    dropoff_time_key      BIGINT,
+    pickup_location_key   BIGINT,
+    dropoff_location_key  BIGINT,
+    payment_key           BIGINT,
+    rate_key              BIGINT,
+    passenger_count       BIGINT,
+    trip_distance         DOUBLE PRECISION,
+    trip_duration_min     DOUBLE PRECISION,
+    fare_amount           DOUBLE PRECISION,
+    extra                 DOUBLE PRECISION,
+    tip_amount            DOUBLE PRECISION,
+    tip_ratio             DOUBLE PRECISION,
+    tolls_amount          DOUBLE PRECISION,
+    congestion_surcharge  DOUBLE PRECISION,
+    airport_fee           DOUBLE PRECISION,
+    cbd_congestion_fee    DOUBLE PRECISION,
+    total_amount          DOUBLE PRECISION,
+    pickup_date           DATE
+);
+
+CREATE INDEX IF NOT EXISTS idx_fact_trip_pickup_date     ON fact_trip (pickup_date);
+CREATE INDEX IF NOT EXISTS idx_fact_trip_pickup_location ON fact_trip (pickup_location_key);
+CREATE INDEX IF NOT EXISTS idx_fact_trip_vendor          ON fact_trip (vendor_key);
+

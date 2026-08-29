@@ -44,6 +44,38 @@ models:
       - name: tip_category
         description: 'Categorized tip level (High, Medium, Low)'
 
+  - name: mart_revenue_by_zone_hour
+    description: 'Revenue and trip metrics by pickup location zone and hour. location_id matches LocationID key in TopoJSON for Power BI Shape Map.'
+    columns:
+      - name: location_id
+        description: 'Pickup location key (= TLC LocationID) — joins to TopoJSON LocationID'
+        tests:
+          - not_null
+      - name: zone_name
+        description: 'Taxi zone name'
+        tests:
+          - not_null
+      - name: borough
+        description: 'NYC borough'
+      - name: pickup_hour
+        description: 'Hour of pickup (0-23) — used as Power BI slicer'
+        tests:
+          - not_null
+      - name: trip_count
+        description: 'Number of trips in this zone/hour bucket'
+        tests:
+          - not_null
+      - name: total_revenue
+        description: 'Sum of fare_amount (excl. tips/surcharges)'
+        tests:
+          - not_null
+      - name: avg_tip_ratio
+        description: 'Average tip_ratio (tip_amount / fare_amount)'
+      - name: avg_fare
+        description: 'Average fare amount'
+      - name: avg_distance_miles
+        description: 'Average trip distance in miles'
+
   - name: fct_vendor_daily_metrics
     description: 'Daily vendor metrics table with aggregated statistics'
     columns:

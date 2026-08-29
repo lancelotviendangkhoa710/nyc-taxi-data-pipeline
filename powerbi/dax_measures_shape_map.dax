@@ -1,0 +1,47 @@
+// ============================================================
+// DAX Measures for mart_revenue_by_zone_hour Shape Map visual
+// Power BI table: mart_revenue_by_zone_hour
+// ============================================================
+
+// -----------------------------------------------------------
+// Measure 1: [Total Revenue]
+// Color saturation field cho Shape Map
+// Tổng revenue theo zone, respects pickup_hour slicer
+// -----------------------------------------------------------
+Total Revenue =
+SUMX(
+    mart_revenue_by_zone_hour,
+    mart_revenue_by_zone_hour[total_revenue]
+)
+
+
+// -----------------------------------------------------------
+// Measure 2: [Total Trips]
+// Tooltip field — số chuyến xe trong zone/hour đang filter
+// -----------------------------------------------------------
+Total Trips =
+SUMX(
+    mart_revenue_by_zone_hour,
+    mart_revenue_by_zone_hour[trip_count]
+)
+
+
+// -----------------------------------------------------------
+// Measure 3: [Avg Tip Ratio %]
+// Tooltip field — weighted average tip ratio (%)
+// Dùng weighted avg thay vì AVG đơn để tránh bias zone nhỏ
+// -----------------------------------------------------------
+Avg Tip Ratio % =
+VAR _weighted_sum =
+    SUMX(
+        mart_revenue_by_zone_hour,
+        mart_revenue_by_zone_hour[avg_tip_ratio]
+            * mart_revenue_by_zone_hour[trip_count]
+    )
+VAR _total_trips =
+    SUMX(
+        mart_revenue_by_zone_hour,
+        mart_revenue_by_zone_hour[trip_count]
+    )
+RETURN
+    DIVIDE( _weighted_sum, _total_trips ) * 100

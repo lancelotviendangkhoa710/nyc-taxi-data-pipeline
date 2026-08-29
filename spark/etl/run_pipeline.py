@@ -16,29 +16,29 @@ def main():
     print("=" * 60)
 
     # 1. Extract
-    print("\n[1/3] EXTRACT: Khởi tạo Spark & đọc dữ liệu raw...")
+    print("\n[1/3] EXTRACT: Initializing Spark & reading raw data...")
     spark = get_spark_session()
     df_raw = extract_data(spark,RAW_DIR, "yellow_tripdata_2026-01.parquet")#YELLOW_TAXI_PATTERN
     df_raw.show(5, truncate=False)
     raw_count = df_raw.count()
-    print(f"  → Đọc được {raw_count:,} bản ghi")
+    print(f"  → Read {raw_count:,} records")
 
     # 2. Transform
-    print("\n[2/3] TRANSFORM: Xử lý null, outliers, derived columns...")
+    print("\n[2/3] TRANSFORM: Processing nulls, outliers, and derived columns...")
     df = handle_null_values(df_raw)
     df = filter_outliers(df)
     df = add_derived_columns(df)
     df = remove_duplicates(df)
     transformed_count = df.count()
-    print(f"  → Sau transform: {transformed_count:,} bản ghi (loại {raw_count - transformed_count:,} outliers)")
+    print(f"  → Post-transform: {transformed_count:,} records (removed {raw_count - transformed_count:,} outliers)")
 
     # 3. Load Warehouse
-    print("\n[3/3] LOAD: Ghi dữ liệu lên Supabase PostgreSQL...")
+    print("\n[3/3] LOAD: Writing data to Supabase PostgreSQL...")
     loader = YellowTaxiWarehouseLoader(spark)
     loader.load_all(df)
 
     print("\n" + "=" * 60)
-    print("  Pipeline hoàn thành!")
+    print("  Pipeline completed successfully!")
     print("=" * 60)
 
     spark.stop()

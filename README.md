@@ -1,44 +1,51 @@
-<div align="center">
+# NYC Taxi Data Engineering Pipeline
 
-<img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=700&size=32&pause=1000&color=F7C948&center=true&vCenter=true&width=800&lines=NYC+Taxi+Data+Engineering;End-to-End+Batch+Pipeline;Spark+%7C+PostgreSQL+%7C+dbt+%7C+Power+BI" alt="Typing SVG" />
+End-to-end batch ETL pipeline for NYC TLC Yellow Taxi trip data —
+raw Parquet → Spark processing → PostgreSQL star schema → dbt transformations → Power BI.
 
-<br/>
+![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
+![Spark](https://img.shields.io/badge/Apache%20Spark-3.5.1-E25A1C?logo=apachespark&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?logo=postgresql&logoColor=white)
+![dbt](https://img.shields.io/badge/dbt-1.8.0-FF694B?logo=dbt&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-26.x-2496ED?logo=docker&logoColor=white)
+![Status](https://img.shields.io/badge/Status-Active-brightgreen)
 
-<img src="https://img.shields.io/badge/Python-3.12+-3776AB?style=for-the-badge&logo=python&logoColor=white"/>
-<img src="https://img.shields.io/badge/Apache%20Spark-3.x-E25A1C?style=for-the-badge&logo=apachespark&logoColor=white"/>
-<img src="https://img.shields.io/badge/PostgreSQL-16-336791?style=for-the-badge&logo=postgresql&logoColor=white"/>
-<img src="https://img.shields.io/badge/dbt-1.x-FF694B?style=for-the-badge&logo=dbt&logoColor=white"/>
-<img src="https://img.shields.io/badge/Docker-Latest-2496ED?style=for-the-badge&logo=docker&logoColor=white"/>
-<img src="https://img.shields.io/badge/Power%20BI-Latest-F2C811?style=for-the-badge&logo=powerbi&logoColor=black"/>
-<img src="https://img.shields.io/badge/Parquet-Columnar-50AF95?style=for-the-badge"/>
-<img src="https://img.shields.io/badge/Status-In%20Progress-orange?style=for-the-badge"/>
-
-<br/><br/>
-<img src="docs/WorkFlow.png" alt="Architecture Workflow" width="85%"/>
-</div>
+![Architecture](docs/WorkFlow.png)
 
 ---
 
 ## Overview
 
-An **end-to-end batch data engineering pipeline** for NYC Yellow Taxi trip data (TLC).
+Processes NYC TLC Yellow Taxi trip records through a multi-stage batch pipeline:
+ingestion from public Parquet files → Spark-based ETL → PostgreSQL star schema warehouse
+→ dbt transformation layers → Power BI analytics.
 
-Downloads raw Parquet files from the NYC TLC public dataset, processes them through a **Spark ETL** pipeline, loads data into a **PostgreSQL star-schema** data warehouse, applies **dbt** transformations, and produces analytics-ready tables for **Power BI** visualization.
+## Key Highlights
+
+- Processes **~3M+ trip records** across 12 months (2024 NYC TLC dataset)
+- Spark ETL with schema validation, null/outlier handling, and data quality reporting
+- Star schema: `fact_trip` + 5 dimension tables optimized for analytical queries
+- dbt models across 3 layers: staging → intermediate → marts
+- Fully containerized PostgreSQL via Docker Compose
 
 ---
 
 ## Architecture
 
 ```
-NYC TLC (Parquet)
-        |
-Spark ETL  --  Extract -> Transform -> Validate -> Load
-        |
-PostgreSQL  --  Star Schema Data Warehouse
-        |
-dbt  --  Staging -> Intermediate -> Marts
-        |
-Power BI  --  Interactive Analytics Dashboard
+[NYC TLC – Public HTTP]
+        │  Parquet files (~900 MB raw, ~1.5 GB including processed data)
+        ▼
+[Apache Spark 3.5.1]  extract → validate → transform → load
+        │  Processed Parquet  →  data/processed/
+        ▼
+[PostgreSQL 16]  Star Schema  (fact_trip + 5 dimension tables)
+        │
+        ▼
+[dbt 1.8]  staging → intermediate → marts
+        │
+        ▼
+[Power BI]  Interactive dashboards
 ```
 
 ---
@@ -46,15 +53,14 @@ Power BI  --  Interactive Analytics Dashboard
 ## Tech Stack
 
 | Technology | Version | Purpose |
-| :---: | :---: | :--- |
-| ![Python](https://img.shields.io/badge/-Python-3776AB?logo=python&logoColor=white) | `3.12+` | Core language for ETL |
-| ![Spark](https://img.shields.io/badge/-Apache%20Spark-E25A1C?logo=apachespark&logoColor=white) | `3.x` | Distributed data processing |
-| ![PostgreSQL](https://img.shields.io/badge/-PostgreSQL-336791?logo=postgresql&logoColor=white) | `16` | Data warehouse — star schema |
-| ![dbt](https://img.shields.io/badge/-dbt-FF694B?logo=dbt&logoColor=white) | `1.x` | SQL transformation layer |
-| ![Power BI](https://img.shields.io/badge/-Power%20BI-F2C811?logo=powerbi&logoColor=black) | `Latest` | Business analytics |
-| ![Docker](https://img.shields.io/badge/-Docker-2496ED?logo=docker&logoColor=white) | `Latest` | PostgreSQL containerization |
-| **Parquet** | `N/A` | Columnar storage format |
-| **JDBC** | `N/A` | Spark to PostgreSQL connectivity |
+| :--- | :---: | :--- |
+| Python | `3.12` | Core ETL language |
+| Apache Spark | `3.5.1` | Distributed data processing |
+| PostgreSQL | `16` | Star schema data warehouse |
+| dbt-postgres | `1.8.0` | SQL transformation layer |
+| Docker Compose | `26.x` | PostgreSQL containerization |
+| Power BI Desktop | `2.x` | Business analytics & reporting |
+| JDBC (PostgreSQL) | `42.x` | Spark → PostgreSQL connectivity |
 
 ---
 
@@ -158,13 +164,15 @@ NYC_Taxi_Project/
 
 ### Prerequisites
 
-| Requirement | Version |
-| :--- | :---: |
-| Python | `3.12+` |
-| Java (Eclipse Adoptium) | `21` |
-| Docker & Docker Compose | `Latest` |
-| Git | `2.36+` |
-| Free disk space | `~2 GB` |
+| Requirement | Version | Notes |
+| :--- | :---: | :--- |
+| Python | `3.12+` | |
+| Java (Eclipse Adoptium) | `21` | Required for Apache Spark |
+| Docker & Docker Compose | `26+` | For PostgreSQL container |
+| Git | `2.36+` | |
+| Free disk space | `~2 GB` | Raw + processed data |
+
+> **Windows users:** Set `HADOOP_HOME` and add `winutils.exe` to `%HADOOP_HOME%\bin` before running Spark locally.
 
 ### 1. Clone & Setup
 
@@ -234,70 +242,21 @@ SELECT COUNT(*) FROM dim_vendor;
 
 ---
 
-## Git Worktree Workflow
-
-Git worktree lets you work on **multiple branches simultaneously** without constant branch switching.
-
-```bash
-# Create worktree
-git worktree add -b feature/dbt-transformations ./worktrees/dbt-feature
-
-# List worktrees
-git worktree list
-
-# Navigate & setup
-cd ./worktrees/dbt-feature
-python -m venv .venv
-.venv\Scripts\activate
-pip install -e . && pip install dbt-postgres
-
-# Commit & push
-git add .
-git commit -m "feat: add dbt models for revenue analysis"
-git push -u origin feature/dbt-transformations
-
-# Open PR
-gh pr create --title "Add dbt transformation models" --base main --head feature/dbt-transformations
-
-# Cleanup after merge
-git worktree remove ./worktrees/dbt-feature
-git branch -d feature/dbt-transformations
-```
-
----
-
-## Contributing
-
-1. `git worktree add -b feature/xyz ./worktrees/xyz`
-2. Make changes and test thoroughly
-3. Commit with clear messages
-4. Push and open a Pull Request
-5. After merge: `git worktree remove ./worktrees/xyz`
-
----
-
 ## Project Status
 
 | Component | Status |
 | :--- | :---: |
-| Spark ETL Pipeline | Completed |
-| PostgreSQL Star Schema | Completed |
-| dbt Transformation Layer | Completed |
-| Power BI Dashboards | Planned |
-| Apache Airflow Orchestration | Planned |
+| Spark ETL Pipeline | ✅ Completed |
+| PostgreSQL Star Schema | ✅ Completed |
+| dbt Transformation Layer | ✅ Completed |
+| Power BI Dashboards | 🔲 Planned |
+| Apache Airflow Orchestration | 🔲 Planned |
 
 ---
 
-## Resources
+## References
 
-[![NYC TLC](https://img.shields.io/badge/NYC%20TLC%20Taxi%20Data-Dataset-yellow?style=for-the-badge)](https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page)
-[![Spark](https://img.shields.io/badge/Apache%20Spark-Docs-E25A1C?style=for-the-badge&logo=apachespark&logoColor=white)](https://spark.apache.org/docs/latest/)
-[![dbt](https://img.shields.io/badge/dbt-Docs-FF694B?style=for-the-badge&logo=dbt&logoColor=white)](https://docs.getdbt.com/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Docs-336791?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/docs/)
-[![Power BI](https://img.shields.io/badge/Power%20BI-Docs-F2C811?style=for-the-badge&logo=powerbi&logoColor=black)](https://learn.microsoft.com/power-bi/)
-
----
-
-<div align="center">
-<img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=14&pause=1000&color=888888&center=true&vCenter=true&width=500&lines=Built+with+love+for+Data+Engineering;NYC+Yellow+Taxi+2024" alt="footer"/>
-</div>
+- [NYC TLC Trip Record Data](https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page)
+- [Apache Spark Documentation](https://spark.apache.org/docs/latest/)
+- [dbt Documentation](https://docs.getdbt.com/)
+- [PostgreSQL 16 Documentation](https://www.postgresql.org/docs/16/)

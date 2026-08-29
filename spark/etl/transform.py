@@ -5,7 +5,7 @@ import os
 logger = get_logger("spark.etl.transform")
 
 def handle_null_values(df: DataFrame) -> DataFrame:
-    logger.info("Đang xử lý các giá trị Null...")
+    logger.info("Processing Null values...")
     default_values = {
         "passenger_count": 1,
         "payment_type": 5,
@@ -26,7 +26,7 @@ def handle_null_values(df: DataFrame) -> DataFrame:
 
 
 def filter_outliers(df: DataFrame) -> DataFrame:
-    logger.info("Đang lọc bỏ Outliers...")
+    logger.info("Filtering outliers...")
 
     df_filtered = df.filter(
         (df["trip_distance"] > 0) & (df["trip_distance"] <= 100)
@@ -38,7 +38,7 @@ def filter_outliers(df: DataFrame) -> DataFrame:
     return df_clean
 
 def add_derived_columns(df: DataFrame) -> DataFrame:
-    logger.info("Đang tạo các cột phát sinh (derived columns)...")
+    logger.info("Generating derived columns...")
 
     df_transformed = df.withColumn(
         "trip_duration_min",
@@ -54,13 +54,13 @@ def add_derived_columns(df: DataFrame) -> DataFrame:
     return df_transformed
 
 def remove_duplicates(df: DataFrame) -> DataFrame:
-    logger.info("Đang loại bỏ các bản ghi trùng lặp...")
+    logger.info("Removing duplicate records...")
     df_cleaned = df.dropDuplicates()
     return df_cleaned
 
 
 def standardize_data_types(df: DataFrame) -> DataFrame:
-    logger.info("Đang chuẩn hóa kiểu dữ liệu của các cột...")
+    logger.info("Standardizing column data types...")
     df_standardized = df.withColumn("tpep_pickup_datetime", F.col("tpep_pickup_datetime").cast("timestamp"))
     df_standardized = df_standardized.withColumn("tpep_dropoff_datetime", F.col("tpep_dropoff_datetime").cast("timestamp"))
     df_standardized = df_standardized.withColumn("passenger_count", F.col("passenger_count").cast("integer"))

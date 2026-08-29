@@ -5,9 +5,8 @@ logger = get_logger("spark.etl.validate")
 
 def validate_schema(df: DataFrame, required_columns: list) -> bool:
     """
-    Kiểm tra xem DataFrame đầu vào có chứa đủ các cột bắt buộc hay không.
+    Check if the input DataFrame contains all required columns.
     """
-    # Lấy danh sách cột hiện tại của DataFrame
     current_columns = df.columns
     
     missing_columns = []
@@ -15,13 +14,13 @@ def validate_schema(df: DataFrame, required_columns: list) -> bool:
       if col not in current_columns:
         missing_columns.append(col)
     if missing_columns:
-        logger.error(f"Validation thất bại! Thiếu các cột bắt buộc: {missing_columns}")
+        logger.error(f"Validation failed! Missing required columns: {missing_columns}")
         return False
-    logger.info("Validation Schema thành công: Đầy đủ các cột yêu cầu.")
+    logger.info("Schema validation successful: All required columns present.")
     return True
 
 def is_empty_dataframe(df: DataFrame) -> bool:
     if df.isEmpty():
-        logger.warning("DataFrame rỗng! Không có dòng dữ liệu nào để xử lý.")
+        logger.warning("Empty DataFrame detected! No records to process.")
         return True
     return False
