@@ -20,6 +20,12 @@ GCP_KEYFILE_PATH = os.getenv(
     "GCP_KEYFILE_PATH",
     str(ROOT_DIR / "gcp_service_account.json"),
 )
+if not os.path.exists(GCP_KEYFILE_PATH):
+    fallback_key = str(ROOT_DIR / "gcp_service_account.json")
+    if os.path.exists(fallback_key):
+        GCP_KEYFILE_PATH = fallback_key
+    elif os.path.exists("/app/gcp_service_account.json"):
+        GCP_KEYFILE_PATH = "/app/gcp_service_account.json"
 
 # ─────────────────────────────────────────
 # Static dim data
