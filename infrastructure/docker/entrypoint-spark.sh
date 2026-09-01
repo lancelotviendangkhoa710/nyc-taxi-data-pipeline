@@ -19,7 +19,7 @@ if [ ! -d "$SPARK_HOME" ]; then
     echo "Spark not found at $SPARK_HOME! Exiting..."
     exit 1
 fi
-echo "Spark version: $(ls $SPARK_HOME/jars/spark-core*.jar | head -1)"
+echo "Spark version: $(ls $SPARK_HOME/jars/spark-core*.jar 2>/dev/null | head -1 || python -c "import pyspark; print(pyspark.__version__)")"
 
 # Kiểm tra Python packages
 echo "Checking Python packages..."
