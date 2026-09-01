@@ -7,39 +7,28 @@
 
 FROM python:3.12-slim-bookworm
 
-# Cài git (dbt cần git để manage models versions)
-# Cài PostgreSQL client (psql - để connect database)
 RUN apt-get update && \
-    apt-get install -y git postgresql-client && \
+    apt-get install -y git postgresql-client curl && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Set biến môi trường
-# PYTHONUNBUFFERED=1: Logs xuất hiện ngay (không buffer)
 ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/app
 
-# Tạo requirements.txt cho dbt
-# dbt-bigquery: adapter để dbt kết nối BigQuery
 RUN pip install --no-cache-dir \
-    "dbt-bigquery>=1.7.0"
+    "dbt-bigquery>=1.7.0" \
+    python-dotenv
 
-
-# Set working directory
 WORKDIR /app
 
-# Copy dbt project
 COPY dbt/ /app/dbt/
-
-# Copy infrastructure (cho debugging/logging)
 COPY infrastructure/ /app/infrastructure/
+COPY spark/ /app/spark/
 
-# Copy entrypoint script
 COPY infrastructure/docker/entrypoint-dbt.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-# Chạy entrypoint script khi container start
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
-# Health check: Kiểm tra dbt có cài đúng không
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD dbt --version || exit 1

@@ -14,9 +14,6 @@ from spark.utils.logger import get_logger
 
 logger = get_logger("spark.etl.load_bigquery")
 
-# ─────────────────────────────────────────
-# BigQuery config (đọc từ env hoặc dùng default)
-# ─────────────────────────────────────────
 GCP_PROJECT_ID   = os.getenv("GCP_PROJECT_ID", "nyc-taxi-data-pipeline-507015")
 GCP_DATASET_RAW  = os.getenv("GCP_DATASET_RAW", "nyc_taxi_raw")
 GCP_KEYFILE_PATH = os.getenv(
@@ -242,13 +239,35 @@ class BigQueryLoader:
         if not parquet_files:
             raise FileNotFoundError(f"Không tìm thấy processed batch: {parquet_dir}")
         table_ref = self._table_ref("yellow_taxi_raw")
-        self.client.query(
-            f"DELETE FROM `{table_ref}` WHERE source_month = @source_month",
-            job_config=bigquery.QueryJobConfig(
-                query_parameters=[bigquery.ScalarQueryParameter("source_month", "STRING", source_month)]
-            ),
-        ).result()
-        self._load_parquet_files(parquet_files, "yellow_taxi_raw", bigquery.WriteDisposition.WRITE_APPEND)
+        # DML DELETE không được phép trên BigQuery Sandbox (free tier).
+        # Thay bằng: kiểm tra table tồn tại chưa, nếu chưa thì WRITE_TRUNCATE,
+        # nếu đã có data từ tháng khác thì WRITE_APPEND (source_month column đảm bảo idempotent).
+        try:
+            tbl = self.client.get_table(table_ref)
+            has_rows = tbl.num_rows > 0
+        except Exception:
+            has_rows = False
+        disposition = (
+            bigquery.WriteDisposition.WRITE_APPEND if has_rows
+            else bigquery.WriteDisposition.WRITE_TRUNCATE
+        )
+        logger.info(
+            "load_batch source_month=%s — table %s rows=%s → %s",
+            source_month, table_ref, tbl.num_rows if has_rows else 0,
+            "APPEND" if has_rows else "TRUNCATE",
+        )
+        # Nếu table cũ tồn tại nhưng thiếu source_month column → drop để recreate schema đúng.
+        if has_rows:
+            try:
+                tbl_schema_names = {f.name for f in tbl.schema}
+                if "source_month" not in tbl_schema_names:
+                    logger.warning("Table thiếu source_month column, drop để recreate schema.")
+                    self.client.delete_table(table_ref)
+                    has_rows = False
+                    disposition = bigquery.WriteDisposition.WRITE_TRUNCATE
+            except Exception as schema_err:
+                logger.warning("Không kiểm tra được schema: %s", schema_err)
+        self._load_parquet_files(parquet_files, "yellow_taxi_raw", disposition)
         self._load_rows(DIM_VENDOR_DATA, "dim_vendor")
         self._load_rows(DIM_PAYMENT_DATA, "dim_payment")
         self._load_rows(DIM_RATE_DATA, "dim_rate")

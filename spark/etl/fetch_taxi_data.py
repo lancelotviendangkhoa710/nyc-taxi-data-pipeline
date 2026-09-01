@@ -3,14 +3,13 @@ import sys
 import requests
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
-
+from datetime import datetime
 from spark.config import RAW_DIR
-from spark.etl.metadata import ETLMetadata
 from spark.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-DATA_START_DATE = "2025-06"  # Hardcoded start date for data fetching, can be changed if needed
+DATA_START_DATE = "2025-06"  
 
 def _current_month() -> str:
     return datetime.now().strftime("%Y-%m")
@@ -83,7 +82,6 @@ def fetch_data(start_date: str = DATA_START_DATE, end_date: str = None) -> None:
         start_date = DATA_START_DATE
 
     RAW_DIR.mkdir(parents=True, exist_ok=True)
-    metadata = ETLMetadata()
 
     try:
         current = datetime.strptime(start_date, "%Y-%m")
@@ -100,9 +98,7 @@ def fetch_data(start_date: str = DATA_START_DATE, end_date: str = None) -> None:
         filepath = RAW_DIR / filename
         url = f"https://d37ci6vzurychx.cloudfront.net/trip-data/{filename}"
 
-        if metadata.is_completed(filename):
-            logger.info("Skip: %s đã completed theo metadata.", filename)
-        elif filepath.exists():
+        if filepath.exists():
             if _check_needs_download(url, filepath):
                 logger.info("Deleting old file, downloading new version: %s", filename)
                 filepath.unlink()
@@ -126,15 +122,4 @@ def fetch_data(start_date: str = DATA_START_DATE, end_date: str = None) -> None:
             current = current.replace(month=current.month + 1)
 
 if __name__ == "__main__":
-    if len(sys.argv) == 1:
-        fetch_data()
-    elif len(sys.argv) == 2:
-        fetch_data(start_date=sys.argv[1])
-    elif len(sys.argv) == 3:
-        fetch_data(start_date=sys.argv[1], end_date=sys.argv[2])
-    else:
-        logger.error("Too many arguments.")
-        logger.info("Usage: python fetch_taxi_data.py [start_date] [end_date]")
-        logger.info("Example: python fetch_taxi_data.py 2025-08 2026-03")
-        sys.exit(1)
-
+    fetch_data()

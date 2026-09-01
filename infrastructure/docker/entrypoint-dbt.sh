@@ -63,7 +63,7 @@ dbt test || exit 1
 # Chỉ dbt test pass mới được đánh dấu verified và cleanup theo retention.
 echo ""
 echo "Finalizing verified ETL batches"
-PYTHONPATH=/app python /app/spark/etl/finalize.py
+python /app/spark/etl/finalize.py
 
 # dbt docs generate: Tạo documentation (optional)
 echo ""

@@ -24,7 +24,8 @@ class YellowTaxiETLPipeline:
         self.spark = None
         self.metadata = ETLMetadata()
 
-        derived_cols = ["trip_duration_min", "tip_ratio", "pickup_date"]
+        # source_month do pipeline ghi vào sau transform, không có trong raw file
+        derived_cols = ["trip_duration_min", "tip_ratio", "pickup_date", "source_month"]
         self.required_cols = [col for col in SELECTED_COLUMNS if col not in derived_cols]
 
     def initialize_spark(self) -> None:

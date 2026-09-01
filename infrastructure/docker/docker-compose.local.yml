@@ -51,7 +51,6 @@ services:
 
     volumes:
       - ../../data:/app/data
-      - ../../spark:/app/spark:ro
       - ../../infrastructure:/app/infrastructure:ro
 
     networks:
@@ -82,6 +81,8 @@ services:
     volumes:
       - ../../dbt:/app/dbt
       - ../../infrastructure:/app/infrastructure:ro
+      - ../../data:/app/data             # Manifest + cleanup raw/processed sau dbt test
+      - ../../spark:/app/spark:ro        # finalize.py overrides image copy khi dev
 
     networks:
       - nyc-taxi-net
