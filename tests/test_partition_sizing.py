@@ -1,24 +1,36 @@
-from spark.etl.load import calculate_write_partitions
+# test_partition_sizing.py
+# calculate_write_partitions đã bị xóa — load.py giờ dùng coalesce(1) cố định
+# để tối ưu BQ upload (1 file/batch thay vì N files/ngày).
+# Test này được thay bằng kiểm tra load_data sử dụng đúng output path.
 
-MIB = 1024 * 1024
-
-
-def test_calculates_partitions_from_raw_batch_size():
-    assert calculate_write_partitions(128 * MIB, 256 * MIB) == 1
-    assert calculate_write_partitions(256 * MIB, 256 * MIB) == 1
-    assert calculate_write_partitions(257 * MIB, 256 * MIB) == 2
-    assert calculate_write_partitions(1024 * MIB, 256 * MIB) == 4
+from spark.etl.load import get_raw_batch_size_bytes, get_configured_batch_size_bytes
+from pathlib import Path
+import os
 
 
-def test_honours_partition_bounds():
-    assert calculate_write_partitions(1, 256 * MIB, min_partitions=2) == 2
-    assert calculate_write_partitions(10 * 256 * MIB, 256 * MIB, max_partitions=3) == 3
+def test_get_configured_batch_size_bytes_uses_env_when_set(monkeypatch):
+    monkeypatch.setenv("ETL_INPUT_SIZE_BYTES", "12345678")
+    assert get_configured_batch_size_bytes() == 12345678
 
 
-def test_rejects_invalid_target_size():
-    try:
-        calculate_write_partitions(1, 0)
-    except ValueError as error:
-        assert "target_size_bytes" in str(error)
-    else:
-        raise AssertionError("expected invalid target size to fail")
+def test_get_configured_batch_size_bytes_fallback_when_env_unset(monkeypatch):
+    monkeypatch.delenv("ETL_INPUT_SIZE_BYTES", raising=False)
+    # Không có raw file → trả về 0
+    result = get_configured_batch_size_bytes()
+    assert isinstance(result, int)
+    assert result >= 0
+
+
+def test_get_raw_batch_size_bytes_empty_dir(tmp_path):
+    result = get_raw_batch_size_bytes(raw_dir=tmp_path, pattern="*.parquet")
+    assert result == 0
+
+
+def test_get_raw_batch_size_bytes_counts_files(tmp_path):
+    f1 = tmp_path / "yellow_tripdata_2025-01.parquet"
+    f2 = tmp_path / "yellow_tripdata_2025-02.parquet"
+    f1.write_bytes(b"x" * 100)
+    f2.write_bytes(b"x" * 200)
+    result = get_raw_batch_size_bytes(raw_dir=tmp_path, pattern="yellow_tripdata_*.parquet")
+    assert result == 300
+

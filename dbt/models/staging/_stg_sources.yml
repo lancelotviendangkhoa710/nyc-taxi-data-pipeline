@@ -5,10 +5,5 @@ sources:
     schema: "{{ env_var('GCP_DATASET_RAW', 'nyc_taxi_raw') }}"
     tables:
       - name: yellow_taxi_raw
-        description: "Processed NYC Yellow Taxi trips loaded by Spark pipeline"
-      - name: dim_vendor
-        description: "Static vendor dimension"
-      - name: dim_payment
-        description: "Static payment type dimension"
-      - name: dim_rate
-        description: "Static rate code dimension"
+        description: "Raw NYC Yellow Taxi trips loaded by Spark ETL (T1: clean & standardize only)"
+

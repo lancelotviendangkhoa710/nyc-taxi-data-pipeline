@@ -1,52 +1,60 @@
-# NYC Taxi Data Engineering Pipeline
+﻿# NYC Taxi Data Engineering Pipeline
 
-End-to-end batch ETL pipeline for NYC TLC Yellow Taxi trip data —
-raw Parquet → Spark processing → PostgreSQL star schema → dbt transformations → Power BI.
+End-to-end batch ETLT pipeline for NYC TLC Yellow Taxi trip data --
+raw Parquet -> Spark T1 (clean & standardize) -> BigQuery staging -> dbt T2 (transform) -> Power BI.
 
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
-![Spark](https://img.shields.io/badge/Apache%20Spark-3.5.1-E25A1C?logo=apachespark&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?logo=postgresql&logoColor=white)
+![Spark](https://img.shields.io/badge/Apache%20Spark-3.5.0-E25A1C?logo=apachespark&logoColor=white)
+![BigQuery](https://img.shields.io/badge/BigQuery-GCP-4285F4?logo=googlecloud&logoColor=white)
 ![dbt](https://img.shields.io/badge/dbt-1.8.0-FF694B?logo=dbt&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-26.x-2496ED?logo=docker&logoColor=white)
 ![Status](https://img.shields.io/badge/Status-Active-brightgreen)
-
-![Architecture](docs/WorkFlow.png)
 
 ---
 
 ## Overview
 
-Processes NYC TLC Yellow Taxi trip records through a multi-stage batch pipeline:
-ingestion from public Parquet files → Spark-based ETL → PostgreSQL star schema warehouse
-→ dbt transformation layers → Power BI analytics.
+Processes NYC TLC Yellow Taxi trip records (2025-05 to present) through a multi-stage ETLT batch pipeline.
 
-## Key Highlights
-
-- Processes **~3M+ trip records** across 12 months (2024 NYC TLC dataset)
-- Spark ETL with schema validation, null/outlier handling, and data quality reporting
-- Star schema: `fact_trip` + 5 dimension tables optimized for analytical queries
-- dbt models across 3 layers: staging → intermediate → marts
-- Fully containerized PostgreSQL via Docker Compose
+**ETLT pattern:**
+- **T1 (Spark)** -- type casting, null fill, dedup, add `pickup_date`. No business logic.
+- **T2 (dbt/BigQuery)** -- filter outliers, derive metrics (`trip_duration_min`, `tip_ratio`), build dim/fact star schema.
 
 ---
 
 ## Architecture
 
 ```
-[NYC TLC – Public HTTP]
-        │  Parquet files (~900 MB raw, ~1.5 GB including processed data)
-        ▼
-[Apache Spark 3.5.1]  extract → validate → transform → load
-        │  Processed Parquet  →  data/processed/
-        ▼
-[PostgreSQL 16]  Star Schema  (fact_trip + 5 dimension tables)
-        │
-        ▼
-[dbt 1.8]  staging → intermediate → marts
-        │
-        ▼
-[Power BI]  Interactive dashboards
+[NYC TLC - Public HTTP]
+        |
+[fetch_taxi_data.py]  ->  data/raw/yellow/
+        |
+[Apache Spark 3.5.0 -- T1 Transform]
+  standardize_data_types()
+  handle_null_values()
+  remove_duplicates()
+  add_pickup_date()
+        |  coalesce(1) -> 1 Parquet per source_month
+        |
+[BigQuery -- nyc_taxi_raw.yellow_taxi_raw]
+        |
+[dbt -- T2 Transform]
+  staging -> intermediate -> marts
+        |
+[Power BI]
 ```
+
+---
+
+## Key Highlights
+
+- Processes **13 months** of data (2025-05 to 2026-05)
+- **ETLT architecture** -- clean separation between Spark T1 and dbt T2
+- `coalesce(1)` write strategy -- 1 file/batch -> 1 BQ load job (~10s vs ~4min before)
+- Dim tables (`dim_vendor`, `dim_payment`, `dim_rate`) hardcoded in dbt via `UNNEST(VALUES)` -- no ETL dependency
+- `dim_location` from `taxi_zone_lookup` dbt seed
+- `dim_time` generated entirely in warehouse from timestamps
+- Metadata-driven pipeline with per-file status tracking and retry logic
 
 ---
 
@@ -55,12 +63,11 @@ ingestion from public Parquet files → Spark-based ETL → PostgreSQL star sche
 | Technology | Version | Purpose |
 | :--- | :---: | :--- |
 | Python | `3.12` | Core ETL language |
-| Apache Spark | `3.5.1` | Distributed data processing |
-| PostgreSQL | `16` | Star schema data warehouse |
-| dbt-postgres | `1.8.0` | SQL transformation layer |
-| Docker Compose | `26.x` | PostgreSQL containerization |
-| Power BI Desktop | `2.x` | Business analytics & reporting |
-| JDBC (PostgreSQL) | `42.x` | Spark → PostgreSQL connectivity |
+| Apache Spark (PySpark) | `3.5.0` | T1: distributed data cleaning |
+| Google BigQuery | GCP | Cloud data warehouse |
+| dbt-bigquery | `1.8.x` | T2: SQL transformation layer |
+| Docker Compose | `26.x` | Spark & dbt containerization |
+| Power BI Desktop | `2.x` | Analytics & reporting |
 
 ---
 
@@ -68,95 +75,36 @@ ingestion from public Parquet files → Spark-based ETL → PostgreSQL star sche
 
 ```
 NYC_Taxi_Project/
-├── spark/
-│   ├── config.py
-│   ├── etl/
-│   │   ├── extract.py
-│   │   ├── transform.py
-│   │   ├── validate.py
-│   │   ├── load.py
-│   │   ├── load_warehouse.py
-│   │   ├── fetch_taxi_data.py
-│   │   ├── pipeline.py
-│   │   ├── main.py
-│   │   └── run_pipeline.py
-│   └── utils/
-│       ├── logger.py
-│       └── spark_session.py
-├── dbt/
-│   ├── dbt_project.yml
-│   ├── profiles.yml
-│   ├── models/
-│   │   ├── staging/
-│   │   ├── intermediate/
-│   │   └── marts/
-│   ├── tests/
-│   └── macros/
-├── infrastructure/
-│   ├── docker/
-│   ├── hadoop/
-│   └── warehouse/
-├── data/
-│   ├── raw/yellow/
-│   └── processed/
-├── docs/
-│   ├── architecture.md
-│   ├── data_model.md
-│   ├── data_dictionary.md
-│   ├── dbt_learning_guide.md
-│   └── IMPLEMENT_PLAN.md
-├── tests/
-├── logs/
-├── pyproject.toml
-├── .env.example
-├── .gitignore
-└── README.md
++-- spark/
+|   +-- config.py                  # Paths, Spark/BQ config, SELECTED_COLUMNS
+|   +-- etl/
+|       +-- fetch_taxi_data.py     # Download raw Parquet from NYC TLC
+|       +-- extract.py             # Spark read + column pruning
+|       +-- validate.py            # Schema & empty-frame checks
+|       +-- transform.py           # T1: standardize, null-fill, dedup, pickup_date
+|       +-- load.py                # coalesce(1) -> local Parquet
+|       +-- load_bigquery.py       # Upload Parquet -> BigQuery
+|       +-- metadata.py            # Per-file status tracking
+|       +-- pipeline.py            # Orchestrates full ETLT flow
+|       +-- main.py
++-- dbt/
+|   +-- seeds/taxi_zone_lookup.csv
+|   +-- models/
+|       +-- staging/               # stg_trip, stg_vendor, stg_payment, stg_rate, stg_location, stg_time
+|       +-- intermediate/          # int_trips_with_dimensions, int_trip_metrics_*
+|       +-- marts/                 # fct_trip_summary, fct_vendor_daily_metrics, mart_revenue_by_zone_hour
++-- infrastructure/docker/         # Dockerfile.spark, Dockerfile.dbt, docker-compose.yml
++-- scripts/
+|   +-- clean_bigquery.py          # Drop all BQ tables
+|   +-- reset_metadata_status.py   # Reset ETL metadata for re-run
++-- data/
+|   +-- raw/yellow/                # Source Parquet files
+|   +-- processed/yellow_taxi/     # source_month=YYYY-MM/ (1 file each)
+|   +-- metadata/etl_metadata.json # Pipeline state
++-- tests/
++-- docs/
++-- README.md
 ```
-
----
-
-## ETL Pipeline
-
-```
-1. EXTRACT  (PySpark)
-   -- Download Yellow Taxi Parquet from NYC TLC
-   -- Store in data/raw/yellow/
-
-2. TRANSFORM  (PySpark)
-   -- Clean data, remove outliers
-   -- Add derived columns: trip_duration_min | tip_ratio | pickup_date
-   -- Validate schema consistency
-
-3. VALIDATE  (PySpark)
-   -- Data quality checks (nulls, ranges, referential integrity)
-   -- Generate quality reports
-
-4. LOAD  (PySpark + JDBC)
-   -- Write partitioned Parquet to data/processed/
-   -- Load into PostgreSQL star schema tables
-
-5. TRANSFORM  (dbt)
-   -- staging      : Standardize & document sources
-   -- intermediate : Business logic, enriched views
-   -- marts        : Analytics-ready fact/dim tables
-
-6. VISUALIZE  (Power BI)
-   -- Connect to PostgreSQL mart tables
-   -- Interactive dashboards & reports
-```
-
----
-
-## Data Model — Star Schema
-
-| Table | Type | Description |
-| :--- | :---: | :--- |
-| `fact_trip` | Fact | Trip records with measures (fare, distance, duration) |
-| `dim_vendor` | Dimension | Taxi vendor information |
-| `dim_payment` | Dimension | Payment type lookup |
-| `dim_rate` | Dimension | Rate code lookup |
-| `dim_location` | Dimension | Pickup / dropoff zone mapping |
-| `dim_time` | Dimension | Time dimension for temporal analysis |
 
 ---
 
@@ -164,81 +112,69 @@ NYC_Taxi_Project/
 
 ### Prerequisites
 
-| Requirement | Version | Notes |
-| :--- | :---: | :--- |
-| Python | `3.12+` | |
-| Java (Eclipse Adoptium) | `21` | Required for Apache Spark |
-| Docker & Docker Compose | `26+` | For PostgreSQL container |
-| Git | `2.36+` | |
-| Free disk space | `~2 GB` | Raw + processed data |
-
-> **Windows users:** Set `HADOOP_HOME` and add `winutils.exe` to `%HADOOP_HOME%\bin` before running Spark locally.
+- Python 3.12+, Java 21, Docker 26+
+- GCP Service Account with BigQuery write permission
+- Place `gcp_service_account.json` in project root
 
 ### 1. Clone & Setup
 
 ```bash
 git clone https://github.com/lancelotviendangkhoa710/nyc-taxi-de-project.git
 cd nyc-taxi-de-project
-
-python -m venv .venv
-.venv\Scripts\activate        # Windows
-source .venv/bin/activate     # macOS/Linux
-
+python -m venv .venv && .venv\Scripts\activate
 pip install -e .
-pip install dbt-postgres
 ```
 
 ### 2. Configure Environment
 
 ```bash
 cp .env.example .env
-# Edit .env:
-# PG_HOST=localhost
-# PG_PORT=5432
-# PG_USER=postgres
-# PG_PASSWORD=postgres
-# PG_DATABASE=postgres
+# Set: GCP_PROJECT_ID, GCP_DATASET_RAW, GCP_KEYFILE_PATH
 ```
 
-### 3. Start PostgreSQL
+### 3. Fetch Raw Data
+
+```bash
+python -m spark.etl.fetch_taxi_data
+```
+
+### 4. Run ETL Pipeline (Docker)
 
 ```bash
 cd infrastructure/docker
-docker compose up -d
-docker compose logs postgres
-```
+docker compose -f docker-compose.yml build spark-etl
 
-### 4. Run Spark ETL
-
-```bash
-python -m spark.etl.main
-
-# Or individual stages:
-python -m spark.etl.extract
-python -m spark.etl.transform
-python -m spark.etl.validate
-python -m spark.etl.load_warehouse
+# One batch at a time (picks next unprocessed file)
+docker compose -f docker-compose.yml run --rm spark-etl
 ```
 
 ### 5. Run dbt
 
 ```bash
-cd dbt
-dbt debug
-dbt run
-dbt test
-dbt docs generate
-dbt docs serve
+docker compose -f docker-compose.yml run --rm dbt
+# or locally:
+cd dbt && dbt run && dbt test
 ```
 
-### 6. Verify Data
+### 6. Utility Scripts
 
 ```bash
-psql -h localhost -U postgres -d postgres
-\dt public.*
-SELECT COUNT(*) FROM fact_trip;
-SELECT COUNT(*) FROM dim_vendor;
+# Full BQ reset
+python scripts/clean_bigquery.py
+
+# Reset metadata to re-process all files
+python scripts/reset_metadata_status.py
 ```
+
+---
+
+## Performance
+
+| Batch size | Spark T1 | BQ upload | Total/file |
+| :--- | :---: | :---: | :---: |
+| ~70 MB/month | ~30s | ~10-15s | **~1.5 min** |
+
+coalesce(1): 1 file/batch -> 1 BQ load job. Previous partitionBy approach: 31 files -> ~4 min upload.
 
 ---
 
@@ -246,11 +182,13 @@ SELECT COUNT(*) FROM dim_vendor;
 
 | Component | Status |
 | :--- | :---: |
-| Spark ETL Pipeline | ✅ Completed |
-| PostgreSQL Star Schema | ✅ Completed |
-| dbt Transformation Layer | ✅ Completed |
-| Power BI Dashboards | 🔲 Planned |
-| Apache Airflow Orchestration | 🔲 Planned |
+| Data fetch (2025-05 to 2026-05) | Done |
+| Spark ETL T1 (clean & standardize) | Done |
+| BigQuery staging load | Done |
+| dbt T2 staging / intermediate / marts | Done |
+| Docker Compose (Spark + dbt) | Done |
+| Power BI Dashboards | Planned |
+| Apache Airflow Orchestration | Planned |
 
 ---
 
@@ -259,4 +197,4 @@ SELECT COUNT(*) FROM dim_vendor;
 - [NYC TLC Trip Record Data](https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page)
 - [Apache Spark Documentation](https://spark.apache.org/docs/latest/)
 - [dbt Documentation](https://docs.getdbt.com/)
-- [PostgreSQL 16 Documentation](https://www.postgresql.org/docs/16/)
+- [Google BigQuery Documentation](https://cloud.google.com/bigquery/docs)

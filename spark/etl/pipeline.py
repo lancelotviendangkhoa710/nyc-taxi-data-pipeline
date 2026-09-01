@@ -12,7 +12,7 @@ from spark.config import (
 from spark.etl.extract import get_spark_session, extract_data
 from spark.etl.metadata import ETLMetadata
 from spark.etl.validate import validate_schema, is_empty_dataframe
-from spark.etl.transform import handle_null_values, filter_outliers, add_derived_columns
+from spark.etl.transform import handle_null_values, remove_duplicates, standardize_data_types, add_pickup_date
 from spark.etl.load import load_data
 from spark.utils.logger import get_logger
 
@@ -24,8 +24,8 @@ class YellowTaxiETLPipeline:
         self.spark = None
         self.metadata = ETLMetadata()
 
-        # source_month do pipeline ghi vào sau transform, không có trong raw file
-        derived_cols = ["trip_duration_min", "tip_ratio", "pickup_date", "source_month"]
+        # pickup_date và source_month được thêm bởi pipeline, không có trong raw file
+        derived_cols = ["pickup_date", "source_month"]
         self.required_cols = [col for col in SELECTED_COLUMNS if col not in derived_cols]
 
     def initialize_spark(self) -> None:
@@ -50,10 +50,11 @@ class YellowTaxiETLPipeline:
         return True
 
     def transform(self, df: DataFrame) -> DataFrame:
-        self.logger.info("=== TRANSFORM ===")
+        self.logger.info("=== TRANSFORM (T1: clean & standardize) ===")
+        df = standardize_data_types(df)
         df = handle_null_values(df)
-        df = filter_outliers(df)
-        df = add_derived_columns(df)
+        df = remove_duplicates(df)
+        df = add_pickup_date(df)
         return df
 
     def load(self, df: DataFrame, filename: str, input_size_bytes: int) -> None:
@@ -61,7 +62,6 @@ class YellowTaxiETLPipeline:
         load_data(
             df,
             str(self.metadata.processed_path(filename)),
-            partition_col="pickup_date",
             input_size_bytes=input_size_bytes,
         )
 

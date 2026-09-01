@@ -133,9 +133,7 @@ SELECTED_COLUMNS = [
     "Airport_fee",
     "cbd_congestion_fee",
     "source_month",
-    # Derived columns (thêm vào bởi ETL)
-    "trip_duration_min",
-    "tip_ratio",
+    # Partition column (added by T1 transform)
     "pickup_date",
 ]
 

@@ -94,7 +94,7 @@ class ETLMetadata:
         self._save()
 
     def get_latest_unprocessed(self, raw_dir: Path, pattern: str) -> Optional[Path]:
-        for file_path in sorted(raw_dir.glob(pattern), key=lambda path: path.name, reverse=True):
+        for file_path in sorted(raw_dir.glob(pattern), key=lambda path: path.name):
             if not self.is_completed(file_path.name) and self.status(file_path.name) != "bq_loaded":
                 return file_path
         return None
