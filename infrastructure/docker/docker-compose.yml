@@ -49,6 +49,9 @@ services:
     env_file:
       - ../../.env
 
+    environment:
+      - GCP_KEYFILE_PATH=/app/gcp_service_account.json
+
     # Volumes
     volumes:
       - ../../dbt:/app/dbt # dbt project (read-write)
