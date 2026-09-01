@@ -2,11 +2,22 @@ nyc_taxi:
   target: dev
   outputs:
     dev:
-      type: postgres
-      host: "{{ env_var('PG_HOST', 'postgres') }}"
-      port: "{{ env_var('PG_PORT', '5432') | int }}"
-      user: "{{ env_var('PG_USER', 'postgres') }}"
-      password: "{{ env_var('PG_PASSWORD') }}"
-      dbname: "{{ env_var('PG_DATABASE', 'nyc_taxi') }}"
-      schema: public
+      type: bigquery
+      method: service-account
+      project: nyc-taxi-data-pipeline-507015
+      dataset: nyc_taxi_dbt
+      keyfile: "{{ env_var('GCP_KEYFILE_PATH', '/app/gcp_service_account.json') }}"
       threads: 4
+      timeout_seconds: 300
+      location: US
+
+    # -- PostgreSQL (disabled - migrated to BigQuery) --------------------------
+    # postgres:
+    #   type: postgres
+    #   host: "{{ env_var('PG_HOST', 'postgres') }}"
+    #   port: "{{ env_var('PG_PORT', '5432') | int }}"
+    #   user: "{{ env_var('PG_USER', 'postgres') }}"
+    #   password: "{{ env_var('PG_PASSWORD') }}"
+    #   dbname: "{{ env_var('PG_DATABASE', 'nyc_taxi') }}"
+    #   schema: public
+    #   threads: 4

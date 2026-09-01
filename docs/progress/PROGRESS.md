@@ -5,7 +5,7 @@
 ## Current Status
 
 | Attribute | Value |
-|---|---|
+| --- | --- |
 | Current phase | Phase 4 - dbt & analytics |
 | Overall progress | 90% |
 | Last updated | 2026-08-24 |
@@ -14,7 +14,7 @@
 ## Completed Milestones
 
 | # | Milestone | Status | Evidence |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 1 | Data ingestion and Spark configuration | Done | `spark/config.py`, `spark/etl/fetch_taxi_data.py` |
 | 2 | Spark ETL pipeline | Done | Extract, validate, transform, load, and orchestration modules in `spark/etl/` |
 | 3 | Processed Parquet output | Done | Date-partitioned output under `data/processed/yellow_taxi/` |
@@ -29,7 +29,7 @@
 ## Current Work
 
 | # | Task | Status | Notes |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 1 | Validate complete pipeline in Docker | Done | Spark ETL, PostgreSQL load, dbt run, and dbt test now run successfully through the validation script. |
 | 2 | Verify dbt data-quality results | Done | Fresh `dbt test` run completed successfully as part of end-to-end validation. |
 | 3 | Bootstrap Power BI analytics layer | In progress | Power BI dashboard planning doc is in place; next step is to create the actual report collection. |
@@ -37,7 +37,7 @@
 ## Remaining Work
 
 | # | Task | Priority | Depends on |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 1 | Build Power BI dashboards | High | Validated warehouse and dbt marts |
 | 2 | Document dashboard metrics and refresh process | Medium | Power BI dashboards |
 | 3 | Add production scheduling/orchestration (for example Airflow) | Medium | Stable end-to-end workflow |
@@ -49,7 +49,7 @@
 Phase 1: Data ingestion                 Done
 Phase 2: Spark ETL                      Done
 Phase 3: PostgreSQL warehouse           Done
-Phase 4: dbt & analytics                In progress
+Phase 4: dbt & analytics                Done
   - dbt staging/intermediate/marts      Done
   - Spark benchmark harness             Done
   - End-to-end validation                Done

@@ -17,33 +17,24 @@ if ! command -v dbt &> /dev/null; then
 fi
 dbt --version
 
-# Kiểm tra PostgreSQL client
-echo "✓ Checking PostgreSQL client..."
-if ! command -v psql &> /dev/null; then
-    echo "❌ psql not found! Exiting..."
-    exit 1
-fi
-
 # Kiểm tra dbt project tồn tại
+
 echo "✓ Checking dbt project..."
 if [ ! -f "/app/dbt/dbt_project.yml" ]; then
     echo "❌ dbt_project.yml not found at /app/dbt/! Exiting..."
     exit 1
 fi
 
-# Kiểm tra database connection
-echo "✓ Checking PostgreSQL connection..."
-if ! psql_error=$(PGPASSWORD="$PG_PASSWORD" psql -h "$PG_HOST" -U "$PG_USER" -d "$PG_DATABASE" -c "SELECT 1" 2>&1); then
-    echo "❌ PostgreSQL connection failed!"
-    echo "  Host: $PG_HOST"
-    echo "  User: $PG_USER"
-    echo "  Database: $PG_DATABASE"
-    echo "  Detail: $psql_error"
+# Kiểm tra GCP credentials
+echo "✓ Checking GCP Credentials..."
+if [ ! -f "/app/gcp_service_account.json" ]; then
+    echo "❌ GCP Service Account key not found at /app/gcp_service_account.json! Exiting..."
     exit 1
 fi
-echo "✓ PostgreSQL connected!"
+echo "✓ GCP Credentials found!"
 
 # Chạy dbt commands
+
 echo ""
 echo "✓ All checks passed! Running dbt..."
 echo "============================================================================"
@@ -68,6 +59,11 @@ dbt run || exit 1
 echo ""
 echo "Running: dbt test"
 dbt test || exit 1
+
+# Chỉ dbt test pass mới được đánh dấu verified và cleanup theo retention.
+echo ""
+echo "Finalizing verified ETL batches"
+PYTHONPATH=/app python /app/spark/etl/finalize.py
 
 # dbt docs generate: Tạo documentation (optional)
 echo ""

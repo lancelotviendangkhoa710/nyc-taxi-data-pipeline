@@ -1,11 +1,7 @@
 {{
   config(
     materialized='table',
-    description='Revenue and trip metrics aggregated by pickup location zone and hour of day. location_id maps to LocationID key in TopoJSON for Shape Map visual.',
-    indexes=[
-      {'columns': ['location_id'], 'type': 'btree'},
-      {'columns': ['pickup_hour'], 'type': 'btree'},
-    ]
+    description='Revenue and trip metrics aggregated by pickup location zone and hour of day. location_id maps to LocationID key in TopoJSON for Shape Map visual.'
   )
 }}
 
@@ -27,10 +23,10 @@ select
     loc.borough,
     t.hour                                      as pickup_hour,
     count(tr.trip_id)                           as trip_count,
-    round(sum(tr.fare_amount)::numeric, 2)      as total_revenue,
-    round(avg(tr.tip_ratio)::numeric, 4)        as avg_tip_ratio,
-    round(avg(tr.fare_amount)::numeric, 2)      as avg_fare,
-    round(avg(tr.trip_distance)::numeric, 2)    as avg_distance_miles
+    round(cast(sum(tr.fare_amount) as numeric), 2)      as total_revenue,
+    round(cast(avg(tr.tip_ratio) as numeric), 4)        as avg_tip_ratio,
+    round(cast(avg(tr.fare_amount) as numeric), 2)      as avg_fare,
+    round(cast(avg(tr.trip_distance) as numeric), 2)    as avg_distance_miles
 
 from trips tr
 inner join locations loc

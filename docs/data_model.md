@@ -35,16 +35,13 @@ Bảng sự kiện trung tâm, mỗi hàng = 1 chuyến đi.
 | `trip_duration_min` | FLOAT | _(dẫn xuất)_ | Thời gian chuyến đi (phút) |
 | `fare_amount` | FLOAT | `fare_amount` | Giá cơ bản |
 | `extra` | FLOAT | `extra` | Phụ phí |
-| `mta_tax` | FLOAT | `mta_tax` | Thuế MTA |
 | `tip_amount` | FLOAT | `tip_amount` | Tiền tip |
 | `tip_ratio` | FLOAT | _(dẫn xuất)_ | tip / fare |
 | `tolls_amount` | FLOAT | `tolls_amount` | Phí cầu đường |
-| `improvement_surcharge` | FLOAT | `improvement_surcharge` | Phụ phí cải tiến |
 | `congestion_surcharge` | FLOAT | `congestion_surcharge` | Phụ phí tắc đường |
 | `airport_fee` | FLOAT | `Airport_fee` | Phí sân bay |
 | `cbd_congestion_fee` | FLOAT | `cbd_congestion_fee` | Phí tắc đường CBD |
 | `total_amount` | FLOAT | `total_amount` | Tổng tiền |
-| `store_and_fwd_flag` | VARCHAR | `store_and_fwd_flag` | Lưu trước khi gửi? |
 | `pickup_date` | DATE | _(dẫn xuất)_ | Ngày đón khách |
 
 ---

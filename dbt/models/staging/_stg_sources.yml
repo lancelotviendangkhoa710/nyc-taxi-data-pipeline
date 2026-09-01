@@ -1,11 +1,14 @@
 version: 2
 sources:
   - name: warehouse
-    schema: public
+    database: "{{ env_var('GCP_PROJECT_ID', 'nyc-taxi-data-pipeline-507015') }}"
+    schema: "{{ env_var('GCP_DATASET_RAW', 'nyc_taxi_raw') }}"
     tables:
-      - name: fact_trip
+      - name: yellow_taxi_raw
+        description: "Processed NYC Yellow Taxi trips loaded by Spark pipeline"
       - name: dim_vendor
-      - name: dim_location
-      - name: dim_time
+        description: "Static vendor dimension"
       - name: dim_payment
+        description: "Static payment type dimension"
       - name: dim_rate
+        description: "Static rate code dimension"

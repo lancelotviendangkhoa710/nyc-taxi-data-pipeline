@@ -19,11 +19,10 @@ RUN apt-get update && \
 ENV PYTHONUNBUFFERED=1
 
 # Tạo requirements.txt cho dbt
-# dbt-postgres: adapter để dbt kết nối PostgreSQL
-# psycopg2-binary: PostgreSQL driver cho Python
+# dbt-bigquery: adapter để dbt kết nối BigQuery
 RUN pip install --no-cache-dir \
-    "dbt-postgres>=1.7.0" \
-    "psycopg2-binary>=2.9.0"
+    "dbt-bigquery>=1.7.0"
+
 
 # Set working directory
 WORKDIR /app

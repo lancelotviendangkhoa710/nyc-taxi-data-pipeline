@@ -1,5 +1,5 @@
 # ============================================================================
-# docker-compose.yml - Orchestrate Spark ETL và dbt containers
+# docker-compose.yml - Orchestrate Spark ETL và dbt containers (BigQuery)
 # ============================================================================
 # Chạy: docker-compose -f docker-compose.yml up
 # ============================================================================
@@ -7,27 +7,6 @@
 version: '3.8'
 
 services:
-  # ========================================================================
-  # PostgreSQL Service
-  # ========================================================================
-  postgres:
-    image: postgres:16-alpine
-    container_name: postgres-container
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=Tmo2159@@##
-      - POSTGRES_DB=nyc_taxi
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - nyc-taxi-net
-    restart: unless-stopped
-    healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres -d nyc_taxi" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   # ========================================================================
   # Spark ETL Service - Chạy ETL jobs
   # ========================================================================
@@ -44,23 +23,16 @@ services:
       - ../../.env
 
     # Volumes - Mount thư mục từ host vào container
-    # Format: host_path:container_path:permission
-    # :ro = read-only (bảo vệ source code khỏi bị sửa)
     volumes:
       - ../../data:/app/data # Data folder (read-write)
       - ../../spark:/app/spark:ro # Source code (read-only)
       - ../../infrastructure:/app/infrastructure:ro
+      - ../../gcp_service_account.json:/app/gcp_service_account.json:ro # Service Account
 
-    # Connect tới docker network (để container giao tiếp với nhau)
     networks:
       - nyc-taxi-net
 
-    # Không restart nếu container exit (để debug được)
     restart: "no"
-
-    depends_on:
-      postgres:
-        condition: service_healthy
 
   # ========================================================================
   # dbt Service - Transform data từ Spark ETL
@@ -80,7 +52,10 @@ services:
     # Volumes
     volumes:
       - ../../dbt:/app/dbt # dbt project (read-write)
+      - ../../data:/app/data # Manifest + cleanup raw/processed sau dbt test
+      - ../../spark:/app/spark:ro # Chạy ETL finalizer sau dbt test
       - ../../infrastructure:/app/infrastructure:ro
+      - ../../gcp_service_account.json:/app/gcp_service_account.json:ro # Service Account
 
     # Connect tới docker network
     networks:
@@ -90,22 +65,13 @@ services:
     restart: "no"
 
     depends_on:
-      postgres:
-        condition: service_healthy
       spark-etl:
         condition: service_completed_successfully
 
 # ============================================================================
 # Docker Networks
 # ============================================================================
-# Tạo custom network để container giao tiếp với nhau
-# Lợi ích:
-# - spark-etl container có thể kết nối tới PostgreSQL bằng hostname "postgres"
-# - Thay vì phải dùng IP address
-# ============================================================================
 networks:
   nyc-taxi-net:
-    driver: bridge # Bridge driver (default, tạo network riêng biệt)
+    driver: bridge # Bridge driver (default)
 
-volumes:
-  postgres_data: # Persistent storage cho PostgreSQL

@@ -50,7 +50,12 @@ def get_configured_batch_size_bytes() -> int:
     return int(configured_size) if configured_size is not None else get_raw_batch_size_bytes()
 
 
-def load_data(df: DataFrame, output_path: str = None, partition_col: str = "pickup_date") -> None:
+def load_data(
+    df: DataFrame,
+    output_path: str | None = None,
+    partition_col: str = "pickup_date",
+    input_size_bytes: int | None = None,
+) -> None:
     if output_path is None:
         output_path = str(PROCESSED_DIR / "yellow_taxi")
 
@@ -61,7 +66,7 @@ def load_data(df: DataFrame, output_path: str = None, partition_col: str = "pick
         logger.error("Unable to select configured columns: %s", error)
         raise
 
-    input_size_bytes = get_configured_batch_size_bytes()
+    input_size_bytes = input_size_bytes if input_size_bytes is not None else get_configured_batch_size_bytes()
     write_partitions = calculate_write_partitions(input_size_bytes)
     logger.info(
         "Adaptive output sizing: raw batch=%.2f MiB, target=%.2f MiB, write partitions=%s",
@@ -95,7 +100,7 @@ def load_data(df: DataFrame, output_path: str = None, partition_col: str = "pick
     try:
         (
             df_for_write
-            .write.mode("append")
+            .write.mode("overwrite")
             .partitionBy(partition_col)
             .parquet(output_path)
         )

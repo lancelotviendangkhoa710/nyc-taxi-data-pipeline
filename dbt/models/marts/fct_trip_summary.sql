@@ -1,11 +1,7 @@
 {{
   config(
     materialized='table',
-    description='Final fact table for trip analysis',
-    indexes=[
-      {'columns': ['trip_date'], 'type': 'btree'},
-      {'columns': ['vendor_name'], 'type': 'btree'},
-    ]
+    description='Final fact table for trip analysis'
   )
 }}
 
@@ -33,4 +29,5 @@ select
     end as tip_category
 
 from enriched_trips
-where trip_date >= current_date - interval '12 months'
+where trip_date >= date_sub(current_date(), interval 12 month)
+

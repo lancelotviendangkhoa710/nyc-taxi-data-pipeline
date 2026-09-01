@@ -17,6 +17,8 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR       = ROOT_DIR / "data"
 RAW_DIR        = DATA_DIR / "raw/yellow"
 PROCESSED_DIR  = DATA_DIR / "processed"
+METADATA_DIR   = DATA_DIR / "metadata"
+ETL_LOCAL_RETENTION_DAYS = int(os.getenv("ETL_LOCAL_RETENTION_DAYS", "7"))
 
 # ─────────────────────────────────────────
 # 3. JAVA & HADOOP (Windows)
@@ -96,6 +98,22 @@ MIN_WRITE_PARTITIONS = int(os.getenv("ETL_MIN_WRITE_PARTITIONS", "1"))
 MAX_WRITE_PARTITIONS = int(os.getenv("ETL_MAX_WRITE_PARTITIONS", "2000"))
 
 # Columns được giữ lại sau ETL
+# ─────────────────────────────────────────
+# 8. GCP / BIGQUERY CONFIGURATION
+# ─────────────────────────────────────────
+GCP_PROJECT_ID   = os.getenv("GCP_PROJECT_ID",   "nyc-taxi-data-pipeline-507015")
+GCP_DATASET_RAW  = os.getenv("GCP_DATASET_RAW",  "nyc_taxi_raw")
+
+# Tự động map path keyfile nếu chạy trên Windows host local vs Docker container
+_default_keyfile = str(ROOT_DIR / "gcp_service_account.json")
+GCP_KEYFILE_PATH = os.getenv("GCP_KEYFILE_PATH", _default_keyfile)
+if not os.path.exists(GCP_KEYFILE_PATH) and os.path.exists(_default_keyfile):
+    GCP_KEYFILE_PATH = _default_keyfile
+
+
+# ─────────────────────────────────────────
+# 9. SELECTED COLUMNS (ETL output)
+# ─────────────────────────────────────────
 SELECTED_COLUMNS = [
     "VendorID",
     "tpep_pickup_datetime",
@@ -114,8 +132,10 @@ SELECTED_COLUMNS = [
     "congestion_surcharge",
     "Airport_fee",
     "cbd_congestion_fee",
+    "source_month",
     # Derived columns (thêm vào bởi ETL)
     "trip_duration_min",
     "tip_ratio",
     "pickup_date",
 ]
+

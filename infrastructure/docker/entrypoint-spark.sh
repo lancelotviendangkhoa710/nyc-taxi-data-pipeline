@@ -25,28 +25,16 @@ echo "Spark version: $(ls $SPARK_HOME/jars/spark-core*.jar | head -1)"
 echo "Checking Python packages..."
 python -c "import pyspark; print('PySpark version:', pyspark.__version__)"
 
-# Kiểm tra database connection (nếu có)
-if [ ! -z "$PG_HOST" ]; then
-    echo "✓ Checking PostgreSQL connection..."
-    python -c "
-import psycopg2
-try:
-    conn = psycopg2.connect(
-        host='$PG_HOST',
-        port='$PG_PORT',
-        user='$PG_USER',
-        password='$PG_PASSWORD',
-        database='$PG_DATABASE'
-    )
-    print('✓ PostgreSQL connected!')
-    conn.close()
-except Exception as e:
-    print('PostgreSQL connection failed:', str(e))
-    exit(1)
-"
+# Kiểm tra GCP credentials
+echo "✓ Checking GCP Credentials..."
+if [ ! -f "/app/gcp_service_account.json" ]; then
+    echo "❌ GCP Service Account key not found at /app/gcp_service_account.json! Exiting..."
+    exit 1
 fi
+echo "✓ GCP Credentials found!"
 
 # Chạy Spark ETL job (nếu có main script)
+
 echo ""
 echo "✓ All checks passed! Running Spark ETL..."
 echo "============================================================================"

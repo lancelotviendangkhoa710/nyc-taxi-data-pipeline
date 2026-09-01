@@ -10,10 +10,8 @@ def handle_null_values(df: DataFrame) -> DataFrame:
         "passenger_count": 1,
         "payment_type": 5,
         "extra": 0.0,
-        "mta_tax": 0.0,
         "tip_amount": 0.0,
         "tolls_amount": 0.0,
-        "improvement_surcharge": 0.0,
         "congestion_surcharge": 0.0,
         "Airport_fee": 0.0,
         "cbd_congestion_fee": 0.0

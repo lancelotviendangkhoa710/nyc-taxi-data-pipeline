@@ -15,6 +15,16 @@ clean-targets:
   - "target"
   - "dbt_packages"
 
+seeds:
+  nyc_taxi:
+    taxi_zone_lookup:
+      +schema: raw
+      +column_types:
+        LocationID: integer
+        Borough: string
+        Zone: string
+        service_zone: string
+
 models:
   nyc_taxi:
     staging:

@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 
 from spark.config import RAW_DIR
+from spark.etl.metadata import ETLMetadata
 from spark.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -82,6 +83,7 @@ def fetch_data(start_date: str = DATA_START_DATE, end_date: str = None) -> None:
         start_date = DATA_START_DATE
 
     RAW_DIR.mkdir(parents=True, exist_ok=True)
+    metadata = ETLMetadata()
 
     try:
         current = datetime.strptime(start_date, "%Y-%m")
@@ -98,7 +100,9 @@ def fetch_data(start_date: str = DATA_START_DATE, end_date: str = None) -> None:
         filepath = RAW_DIR / filename
         url = f"https://d37ci6vzurychx.cloudfront.net/trip-data/{filename}"
 
-        if filepath.exists():
+        if metadata.is_completed(filename):
+            logger.info("Skip: %s đã completed theo metadata.", filename)
+        elif filepath.exists():
             if _check_needs_download(url, filepath):
                 logger.info("Deleting old file, downloading new version: %s", filename)
                 filepath.unlink()

@@ -1,92 +1,110 @@
-# Kiến trúc — Nền tảng Kỹ thuật Dữ liệu Taxi NYC
+# Kiến trúc — NYC Taxi Data Engineering Platform
 
 ## Tổng quan
 
-Nền tảng được thiết kế theo mô hình **Batch Processing** với các lớp tách biệt rõ ràng (mô hình Lakehouse-lite).
+Nền tảng xử lý batch hàng tháng theo mô hình **Lakehouse-lite**. Metadata manifest là source of truth duy nhất. Raw và processed là staging tạm có thể dọn sau khi BigQuery và dbt xác nhận thành công.
 
 ---
 
 ## Luồng dữ liệu
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    NGUỒN DỮ LIỆU                        │
-│         Tệp Parquet NYC TLC (Taxi Vàng)                 │
-└─────────────────┬───────────────────────────────────────┘
-                  │  Tải xuống / Trích xuất
-                  ▼
-┌─────────────────────────────────────────────────────────┐
-│                   LỚP THÔ (RAW)                         │
-│              data/raw/*.parquet                         │
-│         (Không chỉnh sửa, giữ nguyên gốc)              │
-└─────────────────┬───────────────────────────────────────┘
-                  │  PySpark ETL (spark/etl/)
-                  ▼
-┌─────────────────────────────────────────────────────────┐
-│                LỚP ĐÃ XỬ LÝ (PROCESSED)                 │
-│           data/processed/*.parquet                      │
-│     (Đã làm sạch, xác thực, làm giàu với cột mới)      │
-└─────────────────┬───────────────────────────────────────┘
-                  │  PySpark Write (JDBC)
-                  ▼
-┌─────────────────────────────────────────────────────────┐
-│              LỚP KHO DỮ LIỆU (WAREHOUSE)                │
-│           PostgreSQL                                    │
-│    FACT_TRIP + DIM_* (Star Schema)                      │
-└─────────────────┬───────────────────────────────────────┘
-                  │  dbt run / dbt test
-                  ▼
-┌─────────────────────────────────────────────────────────┐
-│              LỚP CHUYỂN ĐỔI (TRANSFORM)                 │
-│                    dbt                                  │
-│   staging → intermediate → mart                        │
-└─────────────────┬───────────────────────────────────────┘
-                  │  Kết nối PostgreSQL
-                  ▼
-┌─────────────────────────────────────────────────────────┐
-│             LỚP TRÌNH BÀY (PRESENTATION)                │
-│                  Power BI                                │
-│    Bảng điều khiển Doanh thu / Chuyến đi / Tiền boa     │
-└─────────────────────────────────────────────────────────┘
+NYC TLC (Parquet hàng tháng, trễ 2-3 tháng)
+  │  fetch_taxi_data.py — bỏ qua month đã completed theo manifest
+  ▼
+data/raw/yellow/yellow_tripdata_YYYY-MM.parquet
+  │  metadata: fetched
+  │  Spark: validate + transform + thêm cột source_month
+  ▼
+data/processed/yellow_taxi/source_month=YYYY-MM/   [staging tạm]
+  │  metadata: processed
+  │  BigQueryLoader.load_batch(source_month)
+  │    DELETE yellow_taxi_raw WHERE source_month = YYYY-MM
+  │    WRITE_APPEND parquet batch
+  ▼
+BigQuery: nyc_taxi_raw.yellow_taxi_raw
+  │  metadata: bq_loaded
+  │  dbt run
+  │  dbt test
+  ▼
+BigQuery: staging / intermediate / marts
+  │  metadata: dbt_tested
+  │  finalize.py — chỉ chạy sau dbt test pass
+  │    xóa raw file + processed/source_month=YYYY-MM khi hết retention
+  │  metadata: completed
+  ▼
+data/metadata/etl_metadata.json   [manifest — KHÔNG xóa]
+  │
+  ▼
+Power BI kết nối BigQuery marts
 ```
 
 ---
 
-## Điều phối (Airflow DAG)
+## Vòng đời status batch
 
-```
-download_data
-     ↓
-run_spark_etl
-     ↓
-load_to_postgres
-     ↓
-run_dbt_models
-     ↓
-refresh_dashboard
-```
+| Status | Ý nghĩa | Raw | Processed | Retry lần tiếp |
+|---|---|---|---|---|
+| `fetched` | Raw đã tải về | Có | Chưa | Spark process |
+| `processed` | Parquet batch đã ghi | Có | Có | BQ load, không Spark lại |
+| `bq_loaded` | BQ load thành công | Có | Có | Chờ dbt run + test |
+| `dbt_tested` | dbt test pass | Có | Có | Cleanup sau retention |
+| `completed` | Artifact đã dọn | Đã xóa | Đã xóa | Skip toàn bộ |
+| `failed` | Bước gần nhất lỗi | Tùy bước | Tùy bước | Retry từ bước đó |
 
-Tất cả các bước trên được lập lịch và giám sát bởi **Apache Airflow**.
+Manifest giữ record kể cả sau cleanup. Record `completed` tránh fetch/process lại khi raw đã bị xóa.
 
 ---
 
-## Triển khai
+## Điều phối Docker
 
-| Môi trường | Mô tả |
-| --- | --- |
-| **Hybrid (hiện tại)** | PySpark `local[*]`, PostgreSQL, dbt local |
-| **Future: Docker** | Toàn bộ local stack (Airflow, Power BI, dbt) chạy bằng `docker compose up` |
+```
+docker compose -f infrastructure/docker/docker-compose.yml up --build
+
+[spark-etl]
+  entrypoint-spark.sh
+    python spark/etl/main.py
+      fetch_data()        → data/raw/
+      ETL pipeline        → data/processed/source_month=YYYY-MM/
+      load_batch() → BQ  → yellow_taxi_raw
+
+[dbt]  depends_on: spark-etl completed_successfully
+  entrypoint-dbt.sh
+    dbt debug
+    dbt deps
+    dbt run              → staging / intermediate / marts
+    dbt test             → data quality checks
+    python finalize.py   → mark dbt_tested, cleanup retention
+```
+
+`set -e` đảm bảo: dbt test fail thì finalize không chạy, raw/processed giữ nguyên để retry.
 
 ---
 
-## Thư mục liên quan
+## Cấu hình môi trường
 
-| Lớp | Đường dẫn |
-| --- | --- |
-| Dữ liệu thô | `data/raw/` |
-| Dữ liệu đã xử lý | `data/processed/` |
-| Spark ETL | `spark/etl/` |
-| Lược đồ kho dữ liệu | `warehouse/` |
-| Mô hình dbt | `dbt/` |
-| Airflow DAGs | `airflow/dags/` |
-| Cấu hình Docker | `docker/` |
+| Biến | Mặc định | Ý nghĩa |
+|---|---|---|
+| `ETL_LOCAL_RETENTION_DAYS` | `7` | Ngày giữ raw/processed sau `dbt_tested` |
+| `ETL_TEST_ROW_LIMIT` | unset | Giới hạn row test thủ công; batch này không cleanup |
+| `GCP_PROJECT_ID` | `nyc-taxi-data-pipeline-507015` | GCP project |
+| `GCP_DATASET_RAW` | `nyc_taxi_raw` | BigQuery dataset |
+| `GCP_KEYFILE_PATH` | `gcp_service_account.json` | Service account key |
+| `ETL_PARTITION_PROFILE` | `standard` | `heavy` tăng target file size lên 512 MiB |
+
+---
+
+## Thư mục
+
+| Vai trò | Đường dẫn |
+|---|---|
+| Manifest vĩnh viễn | `data/metadata/etl_metadata.json` |
+| Raw staging | `data/raw/yellow/yellow_tripdata_YYYY-MM.parquet` |
+| Processed staging | `data/processed/yellow_taxi/source_month=YYYY-MM/` |
+| Spark ETL modules | `spark/etl/` |
+| Config tập trung | `spark/config.py` |
+| dbt models | `dbt/models/` |
+| Docker | `infrastructure/docker/` |
+| Tests | `tests/` |
+
+Chi tiết vòng đời, retention, backfill: [`docs/etl_lifecycle.md`](etl_lifecycle.md)
