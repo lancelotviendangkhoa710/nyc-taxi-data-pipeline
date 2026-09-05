@@ -2,33 +2,19 @@
 
 ## Purpose
 
-Power BI is the presentation layer for the NYC Taxi warehouse. It connects to PostgreSQL and reads the dbt marts and warehouse tables to power dashboards.
+Power BI is the presentation layer for the NYC Taxi warehouse. It connects to BigQuery and reads dbt marts after the Spark and dbt containers complete.
 
-## Local Workflow
-
-Power BI is usually run as a desktop or service application rather than inside the Docker stack. The project stack prepares the source data in PostgreSQL, and Power BI connects to that database from the host machine.
-
-Recommended order:
+## Workflow
 
 ```powershell
-docker compose -f infrastructure/docker/docker-compose.local.yml up -d postgres
-docker compose -f infrastructure/docker/docker-compose.local.yml run --rm --no-deps dbt
+docker compose -f infrastructure/docker/docker-compose.yml up --build
 ```
 
-After the warehouse and marts are ready, open Power BI and connect to PostgreSQL.
+After `dbt run` and `dbt test` succeed, connect Power BI Desktop to Google BigQuery using the same GCP project configured in `.env`.
 
 ## Warehouse Connection
 
-Connect Power BI to the project PostgreSQL database:
-
-- Host: `localhost` when connecting from the host
-- Port: `5432`
-- Database: `nyc_taxi`
-- Schema: `public`
-- User: `postgres`
-- Password: same value as `PG_PASSWORD` in `.env`
-
-If you use Power BI inside a managed environment or gateway, point it at the same PostgreSQL database and keep the schema as `public`.
+Use the **Google BigQuery** connector in Power BI and select the dbt output dataset configured in `dbt/profiles.yml` (`nyc_taxi_dbt` by default). Select tables in the `marts` schema, not raw or staging tables.
 
 ## Recommended Dashboards
 
@@ -68,12 +54,12 @@ Suggested source: `fct_trip_summary` and staging/intermediate models where neede
 
 ## Refresh Process
 
-Power BI reads from PostgreSQL, so the dashboard data refreshes whenever the warehouse and dbt marts are rebuilt.
+Power BI reads from BigQuery, so the dashboard data refreshes after the warehouse and dbt marts are rebuilt.
 
 Recommended order:
 
 1. Run Spark ETL
-2. Load PostgreSQL warehouse
+2. Load the BigQuery raw table
 3. Run `dbt run`
 4. Run `dbt test`
 5. Refresh the Power BI dataset or report

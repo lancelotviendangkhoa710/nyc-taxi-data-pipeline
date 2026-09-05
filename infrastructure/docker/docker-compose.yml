@@ -4,8 +4,6 @@
 # Chạy: docker-compose -f docker-compose.yml up
 # ============================================================================
 
-version: '3.8'
-
 services:
   # ========================================================================
   # Spark ETL Service - Chạy ETL jobs
@@ -23,6 +21,9 @@ services:
       - ../../.env
 
     # Volumes - Mount thư mục từ host vào container
+    environment:
+      GCP_KEYFILE_PATH: /app/gcp_service_account.json
+
     volumes:
       - ../../data:/app/data # Data folder (read-write)
       - ../../spark:/app/spark:ro # Source code (read-only)

@@ -4,9 +4,6 @@ from spark.utils.logger import get_logger
 logger = get_logger("spark.etl.validate")
 
 def validate_schema(df: DataFrame, required_columns: list) -> bool:
-    """
-    Check if the input DataFrame contains all required columns.
-    """
     current_columns = df.columns
     
     missing_columns = []

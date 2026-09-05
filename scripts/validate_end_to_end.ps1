@@ -1,5 +1,5 @@
 param(
-    [string]$ComposeFile = "infrastructure/docker/docker-compose.local.yml",
+    [string]$ComposeFile = "infrastructure/docker/docker-compose.yml",
     [switch]$KeepContainers
 )
 
@@ -20,21 +20,9 @@ if (-not (Test-Path $composePath)) {
 }
 
 try {
-    Write-Host ("$ docker compose -f {0} up -d postgres" -f $composePath)
-    docker compose -f $composePath up -d postgres
-    if ($LASTEXITCODE -ne 0) { throw "postgres startup failed with exit code $LASTEXITCODE" }
-
-    Write-Host ("$ docker compose -f {0} exec -T postgres pg_isready -U postgres" -f $composePath)
-    docker compose -f $composePath exec -T postgres pg_isready -U postgres
-    if ($LASTEXITCODE -ne 0) { throw "postgres readiness check failed with exit code $LASTEXITCODE" }
-
-    Write-Host ("$ docker compose -f {0} run --rm spark-etl" -f $composePath)
-    docker compose -f $composePath run --rm spark-etl
-    if ($LASTEXITCODE -ne 0) { throw "spark-etl failed with exit code $LASTEXITCODE" }
-
-    Write-Host ("$ docker compose -f {0} run --rm --no-deps dbt" -f $composePath)
-    docker compose -f $composePath run --rm --no-deps dbt
-    if ($LASTEXITCODE -ne 0) { throw "dbt failed with exit code $LASTEXITCODE" }
+    Write-Host ("$ docker compose -f {0} up --build --abort-on-container-exit --exit-code-from dbt" -f $composePath)
+    docker compose -f $composePath up --build --abort-on-container-exit --exit-code-from dbt
+    if ($LASTEXITCODE -ne 0) { throw "end-to-end validation failed with exit code $LASTEXITCODE" }
 
     $exitCode = 0
 }

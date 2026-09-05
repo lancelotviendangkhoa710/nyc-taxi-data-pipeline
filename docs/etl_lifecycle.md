@@ -15,7 +15,7 @@ fetch → raw/yellow/yellow_tripdata_YYYY-MM.parquet
       → manifest completed → cleanup local
 ```
 
-`source_month` được ghi vào Parquet và dùng để replace đúng batch trên BigQuery. BQ không còn scan toàn bộ local processed output cho mỗi lần chạy.
+`source_month` được ghi vào Parquet để nhận diện batch BigQuery. Hiện loader append batch; source-month replacement/idempotent rerun là work tuần tiếp theo, nên không được rerun batch đã load thành công.
 
 ## Metadata
 

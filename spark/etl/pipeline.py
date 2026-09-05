@@ -4,7 +4,6 @@ from pathlib import Path
 from pyspark.sql import DataFrame, functions as F
 from spark.config import (
     RAW_DIR,
-    PROCESSED_DIR,
     YELLOW_TAXI_PATTERN,
     SELECTED_COLUMNS,
     SPARK_LOG_LEVEL,
@@ -12,7 +11,12 @@ from spark.config import (
 from spark.etl.extract import get_spark_session, extract_data
 from spark.etl.metadata import ETLMetadata
 from spark.etl.validate import validate_schema, is_empty_dataframe
-from spark.etl.transform import handle_null_values, remove_duplicates, standardize_data_types, add_pickup_date
+from spark.etl.transform import (
+    add_pickup_date,
+    handle_null_values,
+    remove_duplicates,
+    standardize_data_types,
+)
 from spark.etl.load import load_data
 from spark.utils.logger import get_logger
 
@@ -24,15 +28,14 @@ class YellowTaxiETLPipeline:
         self.spark = None
         self.metadata = ETLMetadata()
 
-        # pickup_date và source_month được thêm bởi pipeline, không có trong raw file
         derived_cols = ["pickup_date", "source_month"]
         self.required_cols = [col for col in SELECTED_COLUMNS if col not in derived_cols]
 
     def initialize_spark(self) -> None:
-        self.logger.info("Khởi tạo Spark Session...")
+        self.logger.info("Initializing Spark Session...")
         self.spark = get_spark_session()
         self.spark.sparkContext.setLogLevel(SPARK_LOG_LEVEL)
-        self.logger.info("Đã cấu hình log level: %s", SPARK_LOG_LEVEL)
+        self.logger.info("Log level configured: %s", SPARK_LOG_LEVEL)
 
     def extract(self, file_path: Path) -> DataFrame:
         self.logger.info("=== EXTRACT: %s ===", file_path.name)
@@ -41,21 +44,20 @@ class YellowTaxiETLPipeline:
     def validate(self, df: DataFrame) -> bool:
         self.logger.info("=== VALIDATE ===")
         if not validate_schema(df, self.required_cols):
-            self.logger.error("Kiểm tra schema thất bại!")
+            self.logger.error("Schema validation failed!")
             return False
         if is_empty_dataframe(df):
-            self.logger.error("DataFrame rỗng!")
+            self.logger.error("DataFrame is empty!")
             return False
-        self.logger.info("Validate thành công!")
+        self.logger.info("Validate successful!")
         return True
 
     def transform(self, df: DataFrame) -> DataFrame:
-        self.logger.info("=== TRANSFORM (T1: clean & standardize) ===")
+        self.logger.info("=== TRANSFORM (T1: clean and standardize) ===")
         df = standardize_data_types(df)
         df = handle_null_values(df)
         df = remove_duplicates(df)
-        df = add_pickup_date(df)
-        return df
+        return add_pickup_date(df)
 
     def load(self, df: DataFrame, filename: str, input_size_bytes: int) -> None:
         self.logger.info("=== LOAD: Spark → local Parquet ===")
@@ -76,7 +78,6 @@ class YellowTaxiETLPipeline:
     def run(self) -> None:
         self.logger.info("=== Running ETL Pipeline ===")
 
-        # ── 0. Metadata: tìm file mới nhất chưa xử lý ──────────────────────
         summary = self.metadata.summary()
         self.logger.info(
             "Metadata: %d file tổng, by_status=%s",
@@ -90,7 +91,6 @@ class YellowTaxiETLPipeline:
 
         if target_file is None:
             self.logger.info(
-                "Không có file mới để xử lý. "
                 "Thêm file Parquet vào %s để chạy lại.", RAW_DIR,
             )
             return

@@ -25,7 +25,6 @@ WORKDIR /app
 
 # Copy source code (read-only để bảo vệ)
 COPY spark/ /app/spark/
-COPY .env /app/.env
 
 # Copy entrypoint script
 COPY infrastructure/docker/entrypoint-spark.sh /usr/local/bin/entrypoint.sh

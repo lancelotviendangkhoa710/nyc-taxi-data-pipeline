@@ -10,14 +10,3 @@ nyc_taxi:
       threads: 4
       timeout_seconds: 300
       location: US
-
-    # -- PostgreSQL (disabled - migrated to BigQuery) --------------------------
-    # postgres:
-    #   type: postgres
-    #   host: "{{ env_var('PG_HOST', 'postgres') }}"
-    #   port: "{{ env_var('PG_PORT', '5432') | int }}"
-    #   user: "{{ env_var('PG_USER', 'postgres') }}"
-    #   password: "{{ env_var('PG_PASSWORD') }}"
-    #   dbname: "{{ env_var('PG_DATABASE', 'nyc_taxi') }}"
-    #   schema: public
-    #   threads: 4

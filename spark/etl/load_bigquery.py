@@ -49,11 +49,11 @@ class BigQueryLoader:
         return f"{self.project}.{self.dataset}.{table_name}"
 
     def _ensure_dataset(self) -> None:
-        """Tao dataset neu chua ton tai."""
+        """Ensure dataset exists in BigQuery."""
         dataset_ref = bigquery.Dataset(f"{self.project}.{self.dataset}")
         dataset_ref.location = "US"
         self.client.create_dataset(dataset_ref, exists_ok=True)
-        logger.info("Dataset %s san sang.", self.dataset)
+        logger.info("Dataset %s is ready.", self.dataset)
 
     def _load_parquet_files(
         self,
@@ -61,7 +61,6 @@ class BigQueryLoader:
         table_name: str,
         write_disposition: str = bigquery.WriteDisposition.WRITE_TRUNCATE,
     ) -> None:
-        """Load danh sach Parquet files vao 1 BigQuery table."""
         table_ref  = self._table_ref(table_name)
         job_config = bigquery.LoadJobConfig(
             source_format=bigquery.SourceFormat.PARQUET,
@@ -88,11 +87,11 @@ class BigQueryLoader:
         parquet_files = sorted(parquet_dir.rglob("*.parquet"))
         if not parquet_files:
             raise FileNotFoundError(
-                f"Khong tim thay Parquet file nao trong: {parquet_dir}\n"
-                "Hay chay buoc load (Spark -> local Parquet) truoc."
+                f"Can not find any Parquet files in: {parquet_dir}\n"
+                "Please run the load step (Spark -> local Parquet) first."
             )
         logger.info(
-            "Tim thay %d Parquet file(s) trong %s -- bat dau load len BigQuery...",
+            "Found %d Parquet file(s) in %s -- starting load to BigQuery...",
             len(parquet_files), parquet_dir,
         )
         self._load_parquet_files(
@@ -100,14 +99,14 @@ class BigQueryLoader:
             table_name="yellow_taxi_raw",
             write_disposition=bigquery.WriteDisposition.WRITE_TRUNCATE,
         )
-        logger.info("=== BigQuery load hoan tat -- chay dbt de build dim/fact ===")
+        logger.info("=== BigQuery load completed -- run dbt to build dim/fact ===")
 
     def load_batch(self, parquet_dir: Path, source_month: str) -> None:
-        """Replace one source-month batch truoc khi append len BigQuery."""
+        """Replace one source-month batch before appending to BigQuery."""
         self._ensure_dataset()
         parquet_files = sorted(parquet_dir.rglob("*.parquet"))
         if not parquet_files:
-            raise FileNotFoundError(f"Khong tim thay processed batch: {parquet_dir}")
+            raise FileNotFoundError(f"Can not find any processed batch in: {parquet_dir}")
         table_ref = self._table_ref("yellow_taxi_raw")
         try:
             tbl      = self.client.get_table(table_ref)
@@ -127,11 +126,11 @@ class BigQueryLoader:
             try:
                 tbl_schema_names = {f.name for f in tbl.schema}
                 if "source_month" not in tbl_schema_names:
-                    logger.warning("Table thieu source_month column, drop de recreate schema.")
+                    logger.warning("Table is missing source_month column, dropping to recreate schema.")
                     self.client.delete_table(table_ref)
                     has_rows    = False
                     disposition = bigquery.WriteDisposition.WRITE_TRUNCATE
             except Exception as schema_err:
-                logger.warning("Khong kiem tra duoc schema: %s", schema_err)
+                logger.warning("Cannot check schema: %s", schema_err)
         self._load_parquet_files(parquet_files, "yellow_taxi_raw", disposition)
-        logger.info("load_batch hoan tat -- chay dbt de refresh dim/fact.")
+        logger.info("load_batch completed -- run dbt to  refresh dim/fact.")

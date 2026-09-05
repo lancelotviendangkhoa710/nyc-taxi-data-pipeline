@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
-DEFAULT_COMPOSE_FILE = ROOT_DIR / "infrastructure" / "docker" / "docker-compose.local.yml"
+DEFAULT_COMPOSE_FILE = ROOT_DIR / "infrastructure" / "docker" / "docker-compose.yml"
 
 
 def run_command(command: list[str], *, cwd: Path) -> int:
@@ -25,7 +25,7 @@ def main() -> int:
         "--compose-file",
         type=Path,
         default=DEFAULT_COMPOSE_FILE,
-        help="Path to the Docker Compose file that wires postgres, Spark ETL, and dbt.",
+        help="Path to the Docker Compose file that runs Spark ETL and dbt against BigQuery.",
     )
     parser.add_argument(
         "--keep-containers",

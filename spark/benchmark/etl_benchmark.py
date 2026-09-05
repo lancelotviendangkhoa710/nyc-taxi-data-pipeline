@@ -12,7 +12,12 @@ from pathlib import Path
 from typing import Iterable
 
 from spark.config import RAW_DIR, ROOT_DIR, SELECTED_COLUMNS, setup_java_env
-from spark.etl.transform import add_derived_columns, filter_outliers, handle_null_values
+from spark.etl.transform import (
+    add_pickup_date,
+    handle_null_values,
+    remove_duplicates,
+    standardize_data_types,
+)
 
 MEBIBYTE = 1024 * 1024
 RESULT_COLUMNS = (
@@ -164,7 +169,10 @@ def run_case(
         read_seconds = time.perf_counter() - read_started
 
         transform_started = time.perf_counter()
-        transformed = add_derived_columns(filter_outliers(handle_null_values(raw)))
+        transformed = standardize_data_types(raw)
+        transformed = handle_null_values(transformed)
+        transformed = remove_duplicates(transformed)
+        transformed = add_pickup_date(transformed)
         transformed = transformed.select(*SELECTED_COLUMNS).repartition(partitions).cache()
         output_rows = transformed.count()
         transform_seconds = time.perf_counter() - transform_started

@@ -1,5 +1,4 @@
 import os
-import platform as _platform
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -47,12 +46,6 @@ SPARK_APP_NAME   = "nyc-taxi"
 SPARK_MASTER     = "local[*]"
 SPARK_LOG_LEVEL  = "WARN"
 
-# PostgreSQL JDBC: Docker đã baked JAR vào image; Windows dùng packages để auto-download
-if _platform.system() == "Windows":
-    _pg_jdbc = {"spark.jars.packages": "org.postgresql:postgresql:42.7.1"}
-else:
-    _pg_jdbc = {"spark.jars": "/opt/spark/jars/postgresql-42.7.1.jar"}
-
 SPARK_CONFIGS = {
     "spark.sql.shuffle.partitions": "8",
     "spark.sql.adaptive.advisoryPartitionSizeInBytes": str(
@@ -65,19 +58,7 @@ SPARK_CONFIGS = {
     ),
     "spark.driver.memory": "4g",
     "spark.sql.adaptive.enabled": "true",
-    **_pg_jdbc,
 }
-
-# ─────────────────────────────────────────
-# 5. POSTGRESQL WAREHOUSE CONFIGURATION
-# ─────────────────────────────────────────
-PG_HOST     = os.getenv("PG_HOST", "localhost")
-PG_PORT     = os.getenv("PG_PORT", "5432")
-PG_DATABASE = os.getenv("PG_DATABASE", "nyc_taxi_dw")
-PG_USER     = os.getenv("PG_USER", "postgres")
-PG_PASSWORD = os.getenv("PG_PASSWORD", "Tmo2159@@##")
-
-PG_JDBC_URL = f"jdbc:postgresql://{PG_HOST}:{PG_PORT}/{PG_DATABASE}"
 
 # ─────────────────────────────────────────
 # 6. FILE PATTERNS

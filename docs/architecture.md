@@ -2,7 +2,7 @@
 
 ## Tổng quan
 
-Nền tảng xử lý batch hàng tháng theo mô hình **Lakehouse-lite**. Metadata manifest là source of truth duy nhất. Raw và processed là staging tạm có thể dọn sau khi BigQuery và dbt xác nhận thành công.
+Nền tảng xử lý batch hàng tháng theo mô hình **Lakehouse-lite**. Metadata manifest là source of truth duy nhất cho trạng thái local staging. Nó chưa thay thế warehouse control table khi cần chạy đồng thời. Raw và processed là staging tạm có thể dọn sau khi BigQuery và dbt xác nhận thành công.
 
 ---
 
@@ -19,8 +19,8 @@ data/raw/yellow/yellow_tripdata_YYYY-MM.parquet
 data/processed/yellow_taxi/source_month=YYYY-MM/   [staging tạm]
   │  metadata: processed
   │  BigQueryLoader.load_batch(source_month)
-  │    DELETE yellow_taxi_raw WHERE source_month = YYYY-MM
   │    WRITE_APPEND parquet batch
+  │    Note: source-month replacement is not implemented yet; do not rerun a successfully loaded batch.
   ▼
 BigQuery: nyc_taxi_raw.yellow_taxi_raw
   │  metadata: bq_loaded

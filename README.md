@@ -50,11 +50,11 @@ Processes NYC TLC Yellow Taxi trip records (2025-05 to present) through a multi-
 
 - Processes **13 months** of data (2025-05 to 2026-05)
 - **ETLT architecture** -- clean separation between Spark T1 and dbt T2
-- `coalesce(1)` write strategy -- 1 file/batch -> 1 BQ load job (~10s vs ~4min before)
+- Single-file monthly staging output for the current small-batch workflow; this is intentionally not the scale-out strategy.
 - Dim tables (`dim_vendor`, `dim_payment`, `dim_rate`) hardcoded in dbt via `UNNEST(VALUES)` -- no ETL dependency
 - `dim_location` from `taxi_zone_lookup` dbt seed
 - `dim_time` generated entirely in warehouse from timestamps
-- Metadata-driven pipeline with per-file status tracking and retry logic
+- Metadata-driven pipeline with per-file status tracking and resumable local staging.
 
 ---
 
@@ -129,7 +129,7 @@ pip install -e .
 
 ```bash
 cp .env.example .env
-# Set: GCP_PROJECT_ID, GCP_DATASET_RAW, GCP_KEYFILE_PATH
+# Set GCP_PROJECT_ID, GCP_DATASET_RAW, and GCP_KEYFILE_PATH. Keep .env and the key file local.
 ```
 
 ### 3. Fetch Raw Data
@@ -174,7 +174,7 @@ python scripts/reset_metadata_status.py
 | :--- | :---: | :---: | :---: |
 | ~70 MB/month | ~30s | ~10-15s | **~1.5 min** |
 
-coalesce(1): 1 file/batch -> 1 BQ load job. Previous partitionBy approach: 31 files -> ~4 min upload.
+Use the reproducible Spark benchmark harness in `spark/benchmark/etl_benchmark.py`. Run every configuration at least three times and report median duration before claiming an improvement. Current local output uses one Parquet file per monthly batch to reduce Python SDK BigQuery load-job overhead; it is deliberately limited to small batches and needs a multi-file/cloud-storage strategy as volume grows.
 
 ---
 
@@ -187,6 +187,7 @@ coalesce(1): 1 file/batch -> 1 BQ load job. Previous partitionBy approach: 31 fi
 | BigQuery staging load | Done |
 | dbt T2 staging / intermediate / marts | Done |
 | Docker Compose (Spark + dbt) | Done |
+| GitHub Actions (Python unit tests + dbt parse) | Done |
 | Power BI Dashboards | Planned |
 | Apache Airflow Orchestration | Planned |
 

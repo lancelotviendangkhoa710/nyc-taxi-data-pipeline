@@ -4,7 +4,7 @@ from pathlib import Path
 from spark.etl.metadata import ETLMetadata
 
 
-def test_get_latest_unprocessed_skips_files_written_to_processed(tmp_path: Path) -> None:
+def test_get_latest_unprocessed_prioritizes_processed_batch_for_bigquery_retry(tmp_path: Path) -> None:
     raw_dir = tmp_path / "raw"
     raw_dir.mkdir()
     processed_file = raw_dir / "yellow_tripdata_2026-01.parquet"
@@ -18,8 +18,8 @@ def test_get_latest_unprocessed_skips_files_written_to_processed(tmp_path: Path)
     # processed = local Parquet đã ghi, pipeline coi là "có thể retry BQ"
     assert metadata.is_completed(processed_file.name) is False
     assert metadata.status(processed_file.name) == "processed"
-    # pending_file chưa có status → nên được chọn
-    assert metadata.get_latest_unprocessed(raw_dir, "yellow_tripdata_*.parquet") == pending_file
+    # A processed batch is retried in BigQuery before newer unprocessed source files.
+    assert metadata.get_latest_unprocessed(raw_dir, "yellow_tripdata_*.parquet") == processed_file
 
 
 def test_processed_record_persists_and_prevents_reprocessing(tmp_path: Path) -> None:
