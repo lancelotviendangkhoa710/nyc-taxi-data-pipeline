@@ -28,7 +28,7 @@ def clean_bigquery_dataset():
 
     # Auth
     if not os.path.exists(GCP_KEYFILE_PATH):
-        print(f"[ERROR] Keyfile không tìm thấy: {GCP_KEYFILE_PATH}")
+        print(f"[ERROR] Keyfile not found: {GCP_KEYFILE_PATH}")
         sys.exit(1)
 
     credentials = service_account.Credentials.from_service_account_file(
@@ -42,23 +42,23 @@ def clean_bigquery_dataset():
     try:
         client.get_dataset(dataset_ref)
     except Exception:
-        print(f"[INFO] Dataset {dataset_ref} không tồn tại — không cần xóa.")
+        print(f"[INFO] Dataset {dataset_ref} not found — no need to delete.")
         return
 
     # List tất cả tables
     tables = list(client.list_tables(dataset_ref))
     if not tables:
-        print(f"[INFO] Dataset {GCP_DATASET_RAW} đang trống — không có gì để xóa.")
+        print(f"[INFO] Dataset {GCP_DATASET_RAW} is empty — nothing to delete.")
         return
 
-    print(f"[INFO] Tìm thấy {len(tables)} table(s):\n")
+    print(f"[INFO] Found {len(tables)} table(s):\n")
     for tbl in tables:
         print(f"  - {tbl.table_id}")
 
-    print(f"\n[WARN] Sẽ xóa TẤT CẢ {len(tables)} table(s) trong dataset {GCP_DATASET_RAW}.")
-    confirm = input("  Nhập 'yes' để xác nhận: ").strip().lower()
+    print(f"\n[WARN] Will delete ALL {len(tables)} table(s) in dataset {GCP_DATASET_RAW}.")
+    confirm = input("  Enter 'yes' to confirm: ").strip().lower()
     if confirm != "yes":
-        print("[ABORT] Hủy bỏ — không có gì bị xóa.")
+        print("[ABORT] Operation cancelled — no tables deleted.")
         return
 
     # Xóa từng table

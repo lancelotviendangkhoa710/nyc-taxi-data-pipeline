@@ -6,7 +6,7 @@ logger = get_logger("spark.etl.transform")
 
 
 def handle_null_values(df: DataFrame) -> DataFrame:
-    """T1: Fill missing values với defaults hợp lý — không có business logic."""
+    """T1: Fill missing values."""
     logger.info("Processing Null values...")
     default_values = {
         "passenger_count": 1,
@@ -23,7 +23,7 @@ def handle_null_values(df: DataFrame) -> DataFrame:
 
 
 def remove_duplicates(df: DataFrame) -> DataFrame:
-    """T1: Xóa duplicate rows từ source."""
+    """T1: remove duplicate rows from source."""
     logger.info("Removing duplicate records...")
     return df.dropDuplicates()
 

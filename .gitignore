@@ -23,5 +23,7 @@ data/
 benchmarks/results/
 dbt/target/
 dbt/logs/
+airflow/logs/
+airflow/dags/__pycache__/
 #agent files
 .agent
