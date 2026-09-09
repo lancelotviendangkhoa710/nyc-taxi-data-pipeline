@@ -42,7 +42,7 @@ class ETLMetadata:
                 if record.get("status") == "extracted":
                     record["status"] = "processed"
         except (json.JSONDecodeError, OSError, ValueError) as error:
-            logger.warning("Không đọc được metadata %s: %s", self.path, error)
+            logger.warning("Failed to read metadata %s: %s", self.path, error)
             self._records = {}
 
     def _save(self) -> None:

@@ -1,6 +1,5 @@
 with raw as (
-    select *
-    from { { source('warehouse', 'yellow_taxi_raw') } }
+    select * from {{ source('warehouse', 'yellow_taxi_raw') }}
 ),
 all_timestamps as (
     select tpep_pickup_datetime as ts

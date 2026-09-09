@@ -50,7 +50,7 @@ def learning_operate_etl() -> None:
         """In logical date để phân biệt thời điểm schedule và thời điểm chạy thực tế."""
         print(f"DAG run ID: {context['run_id']}")
         print(f"Logical date: {context['logical_date']}")
-        print("Schedule: 06:00 UTC, ngày đầu mỗi tháng")
+        print("Schedule: 06:00 UTC, first day of each month")
 
     @task
     def validate_raw_input() -> int:

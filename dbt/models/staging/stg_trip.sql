@@ -3,7 +3,7 @@
 -- T2 transform: filter outliers, derive metrics, chuẩn hóa surrogate keys.
 with source as (
     select *
-    from { { source('warehouse', 'yellow_taxi_raw') } }
+    from {{ source('warehouse', 'yellow_taxi_raw') }}
 ),
 cleaned as (
     select *

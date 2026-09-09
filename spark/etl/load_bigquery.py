@@ -1,5 +1,48 @@
 ﻿from __future__ import annotations
 
+"""
+BigQuery Loader — spark/etl/load_bigquery.py
+============================================
+
+Quy trình tổng quan
+-------------------
+Pipeline ETL có 2 bước Load tách biệt:
+
+    Spark (Transform)
+        │
+        ▼
+    Local Parquet (processed/)       ← buffer an toàn, tránh re-run Spark nếu BQ fail
+        │
+        ▼
+    BigQuery (yellow_taxi_raw)       ← bảng raw, dbt sẽ build dim/fact từ đây
+        │
+        ▼
+    dbt (staging → dim/fact)
+
+Tại sao giữ Local Parquet làm buffer?
+--------------------------------------
+- Spark ETL tốn ~20s để chạy lại. Nếu BQ fail (network, quota, GCP 503),
+  chỉ cần retry bước BQ từ local file mà không cần khởi động lại Spark.
+- Status tracking trong metadata.json phân biệt "processed" vs "bq_loaded"
+  để pipeline tự biết resume đúng bước.
+
+Cơ chế upload song song (_load_parquet_files)
+----------------------------------------------
+Trước đây: upload tuần tự từng file → 10 file × 45s = 450s.
+Hiện tại  : submit tất cả BQ Load Job song song → BQ xử lý đồng thời
+            → tổng thời gian ≈ thời gian của file chậm nhất (~45-60s).
+
+Chi tiết flow song song:
+    1. File đầu tiên : WRITE_TRUNCATE  (xóa data cũ, ghi mới)
+    2. Các file còn lại: WRITE_APPEND  (append vào)
+    3. Submit tất cả jobs cùng lúc (không chờ nhau)
+    4. Gọi job.result(timeout=300) cho từng job để chờ hoàn thành
+       → nếu 1 job stuck quá 5 phút sẽ raise exception thay vì block mãi
+
+Incremental (1 file/tháng) vs Backfill (N file):
+    Cùng 1 code path, tự scale — không cần tách mode.
+"""
+
 import os
 from pathlib import Path
 from typing import Sequence
@@ -11,6 +54,8 @@ from spark.config import PROCESSED_DIR, ROOT_DIR
 from spark.utils.logger import get_logger
 
 logger = get_logger("spark.etl.load_bigquery")
+
+BQ_JOB_TIMEOUT_SECONDS = int(os.getenv("BQ_JOB_TIMEOUT_SECONDS", "300"))
 
 GCP_PROJECT_ID   = os.getenv("GCP_PROJECT_ID", "nyc-taxi-data-pipeline-507015")
 GCP_DATASET_RAW  = os.getenv("GCP_DATASET_RAW", "nyc_taxi_raw")
@@ -24,6 +69,7 @@ if not os.path.exists(GCP_KEYFILE_PATH):
         GCP_KEYFILE_PATH = fallback_key
     elif os.path.exists("/app/gcp_service_account.json"):
         GCP_KEYFILE_PATH = "/app/gcp_service_account.json"
+
 
 
 class BigQueryLoader:

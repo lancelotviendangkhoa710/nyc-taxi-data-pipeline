@@ -22,7 +22,7 @@ from google.oauth2 import service_account
 
 def clean_bigquery_dataset():
     print(f"\n{'='*60}")
-    print(f"  BQ CLEANUP — project: {GCP_PROJECT_ID}")
+    print(f"  BQ CLEANUP - project: {GCP_PROJECT_ID}")
     print(f"  dataset : {GCP_DATASET_RAW}")
     print(f"{'='*60}\n")
 
@@ -42,13 +42,13 @@ def clean_bigquery_dataset():
     try:
         client.get_dataset(dataset_ref)
     except Exception:
-        print(f"[INFO] Dataset {dataset_ref} not found — no need to delete.")
+        print(f"[INFO] Dataset {dataset_ref} not found - no need to delete.")
         return
 
     # List tất cả tables
     tables = list(client.list_tables(dataset_ref))
     if not tables:
-        print(f"[INFO] Dataset {GCP_DATASET_RAW} is empty — nothing to delete.")
+        print(f"[INFO] Dataset {GCP_DATASET_RAW} is empty - nothing to delete.")
         return
 
     print(f"[INFO] Found {len(tables)} table(s):\n")
@@ -58,7 +58,7 @@ def clean_bigquery_dataset():
     print(f"\n[WARN] Will delete ALL {len(tables)} table(s) in dataset {GCP_DATASET_RAW}.")
     confirm = input("  Enter 'yes' to confirm: ").strip().lower()
     if confirm != "yes":
-        print("[ABORT] Operation cancelled — no tables deleted.")
+        print("[ABORT] Operation cancelled - no tables deleted.")
         return
 
     # Xóa từng table
@@ -68,8 +68,8 @@ def clean_bigquery_dataset():
         client.delete_table(table_ref, not_found_ok=True)
         print(f"  [DELETED] {tbl.table_id}")
 
-    print(f"\n[OK] Đã xóa {len(tables)} table(s) trong {GCP_DATASET_RAW}.")
-    print("     Dataset vẫn còn tồn tại — sẵn sàng để load lại.\n")
+    print(f"\n[OK] Deleted {len(tables)} table(s) in {GCP_DATASET_RAW}.")
+    print("     Dataset still exists - ready for reload.\n")
 
 
 if __name__ == "__main__":

@@ -9,6 +9,9 @@ from spark.config import (
     RAW_DIR,
     SELECTED_COLUMNS,
     YELLOW_TAXI_PATTERN,
+    TARGET_FILE_SIZE_BYTES,
+    MIN_WRITE_PARTITIONS,
+    MAX_WRITE_PARTITIONS,
 )
 from spark.utils.logger import get_logger
 
@@ -32,13 +35,7 @@ def load_data(
     output_path: str | None = None,
     input_size_bytes: int | None = None,
 ) -> None:
-    """Write processed data to a single Parquet file per source_month batch.
-
-    Dùng coalesce(1) thay vì partitionBy(pickup_date) để tối ưu BQ upload:
-    - partitionBy tạo N files (1 per ngày) → N BQ load jobs → chậm
-    - coalesce(1) tạo 1 file per batch → 1 BQ load job → nhanh hơn ~30x
-    pickup_date vẫn là cột trong data, chỉ không dùng để partition file nữa.
-    """
+   
     if output_path is None:
         output_path = str(PROCESSED_DIR / "yellow_taxi")
 
@@ -50,15 +47,30 @@ def load_data(
         raise
 
     input_size_bytes = input_size_bytes if input_size_bytes is not None else get_configured_batch_size_bytes()
+
+    num_partitions = max(
+        MIN_WRITE_PARTITIONS,
+        min(
+            MAX_WRITE_PARTITIONS,
+            math.ceil(input_size_bytes / TARGET_FILE_SIZE_BYTES) if input_size_bytes > 0 else 1,
+        ),
+    )
+
     logger.info(
-        "Coalescing to 1 file — raw batch=%.2f MiB → single Parquet for fast BQ upload",
+        "Dynamic partitioning: raw batch=%.2f MiB -> target partitions=%d (target_size=%.2f MiB)",
         input_size_bytes / MEBIBYTE,
+        num_partitions,
+        TARGET_FILE_SIZE_BYTES / MEBIBYTE,
     )
 
     try:
+        if num_partitions == 1:
+            df_writer = df_selected.coalesce(1)
+        else:
+            df_writer = df_selected.repartition(num_partitions)
+
         (
-            df_selected
-            .coalesce(1)
+            df_writer
             .write.mode("overwrite")
             .parquet(output_path)
         )
@@ -66,4 +78,5 @@ def load_data(
     except Exception as error:
         logger.error("Unable to write Parquet output: %s", error)
         raise
+
 
