@@ -17,7 +17,28 @@ dependencies = [
 dev = [
     "dbt-bigquery>=1.8.0",
     "pytest>=8.0",
+    "ruff>=0.4.0",
+    "pre-commit>=3.0",
 ]
 
 [tool.setuptools.packages.find]
 include = ["spark*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # line too long — handled by formatter
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["F401"]  # unused imports OK in tests
