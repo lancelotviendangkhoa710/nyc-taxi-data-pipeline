@@ -64,6 +64,7 @@ Phase 5: Production orchestration          In progress
 ## Architecture Notes
 
 ### ETLT Pattern
+
 ```
 Spark T1:   standardize types, fill nulls, dedup, add pickup_date
 BQ staging: yellow_taxi_raw -- raw cleaned data, no business logic
@@ -72,6 +73,7 @@ dbt T2:     filter outliers, derive trip_duration_min/tip_ratio,
 ```
 
 ### Key Design Decisions
+
 - T1 vs T2 boundary: filter_outliers and derived metrics belong in dbt (business logic, not cleaning)
 - Dim tables in dbt: stg_vendor/payment/rate use UNNEST(VALUES) -- no ETL dependency for static data
 - coalesce(1): 1 Parquet/batch -> 1 BQ load job. Previous partitionBy pickup_date caused 31 files -> 4 min upload

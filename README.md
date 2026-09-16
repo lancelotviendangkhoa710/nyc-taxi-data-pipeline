@@ -17,6 +17,7 @@ raw Parquet -> Spark T1 (clean & standardize) -> BigQuery staging -> dbt T2 (tra
 Processes NYC TLC Yellow Taxi trip records (2025-05 to present) through a multi-stage ETLT batch pipeline.
 
 **ETLT pattern:**
+
 - **T1 (Spark)** -- type casting, null fill, dedup, add `pickup_date`. No business logic.
 - **T2 (dbt/BigQuery)** -- filter outliers, derive metrics (`trip_duration_min`, `tip_ratio`), build dim/fact star schema.
 
@@ -172,7 +173,7 @@ python scripts/reset_metadata_status.py
 
 | Batch size | Spark T1 | BQ upload | Total/file |
 | :--- | :---: | :---: | :---: |
-| ~70 MB/month | ~30s | ~10-15s | **~1.5 min** |
+| ~80 MB/month | ~30s | ~10-15s | **~1.5 min** |
 
 Use the reproducible Spark benchmark harness in `spark/benchmark/etl_benchmark.py`. Run every configuration at least three times and report median duration before claiming an improvement. Current local output uses one Parquet file per monthly batch to reduce Python SDK BigQuery load-job overhead; it is deliberately limited to small batches and needs a multi-file/cloud-storage strategy as volume grows.
 
@@ -188,8 +189,8 @@ Use the reproducible Spark benchmark harness in `spark/benchmark/etl_benchmark.p
 | dbt T2 staging / intermediate / marts | Done |
 | Docker Compose (Spark + dbt) | Done |
 | GitHub Actions (Python unit tests + dbt parse) | Done |
-| Power BI Dashboards | Planned |
-| Apache Airflow Orchestration | Planned |
+| Power BI Dashboards | Inprogress |
+| Apache Airflow Orchestration | Done |
 
 ---
 

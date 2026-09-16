@@ -109,10 +109,13 @@ class BigQueryLoader:
     ) -> None:
         table_ref  = self._table_ref(table_name)
         job_config = bigquery.LoadJobConfig(
-            source_format=bigquery.SourceFormat.PARQUET,
-            write_disposition=write_disposition,
-            autodetect=True,
+            time_partitioning=bigquery.TimePartitioning(
+            type_=bigquery.TimePartitioningType.MONTH,
+            field="pickup_date",
+        ),
+        clustering_fields=["VendorID", "PULocationID"],
         )
+
         logger.info("Loading %d file(s) -> %s ...", len(parquet_files), table_ref)
         for i, fpath in enumerate(parquet_files, 1):
             logger.info("  [%d/%d] %s", i, len(parquet_files), fpath.name)

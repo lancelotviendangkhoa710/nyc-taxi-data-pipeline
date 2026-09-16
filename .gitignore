@@ -27,3 +27,6 @@ airflow/logs/
 airflow/dags/__pycache__/
 #agent files
 .agent
+
+# Interview prep — học tập cá nhân, không commit
+interview_prep/
