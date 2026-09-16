@@ -1,8 +1,13 @@
 version: 2
+
 sources:
   - name: warehouse
     database: "{{ env_var('GCP_PROJECT_ID', 'nyc-taxi-data-pipeline-507015') }}"
     schema: "{{ env_var('GCP_DATASET_RAW', 'nyc_taxi_raw') }}"
+    freshness:
+      warn_after: {count: 35, period: day}
+      error_after: {count: 60, period: day}
+    loaded_at_field: pickup_date
     tables:
       - name: yellow_taxi_raw
         description: "Raw NYC Yellow Taxi trips loaded by Spark ETL (T1: clean & standardize only)"

@@ -2,10 +2,156 @@ version: 2
 
 models:
   - name: stg_trip
-    description: "Staging model for NYC Taxi trips data"
+    description: "Staging model for NYC Taxi trips — T2 transform: filter outliers, derive metrics, build surrogate keys"
     columns:
       - name: trip_id
-        description: "Primary key for each trip"
+        description: "SHA256 surrogate key — unique per trip"
         tests:
           - unique
+          - not_null
+
+      - name: vendor_key
+        description: "Vendor surrogate key (1=Creative Mobile, 2=Curb Mobility, 7=Unknown)"
+        tests:
+          - not_null
+          - accepted_values:
+              values: [1, 2, 7]
+
+      - name: fare_amount
+        description: "Fare amount in USD — filtered >= 2.5 and <= 1000"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 2.5
+              max_value: 1000
+
+      - name: trip_distance
+        description: "Trip distance in miles — filtered > 0 and <= 100"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100
+              inclusive: false
+
+      - name: trip_duration_min
+        description: "Trip duration in minutes derived from dropoff - pickup"
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+
+      - name: tip_ratio
+        description: "tip_amount / fare_amount — 0.0 when fare_amount = 0"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 10
+
+      - name: pickup_date
+        description: "Date of pickup — used for BQ partitioning"
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: ">= '2025-01-01'"
+
+      - name: passenger_count
+        description: "Number of passengers"
+        tests:
+          - not_null
+
+      - name: total_amount
+        description: "Total amount charged to passenger"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 5000
+
+      - name: pickup_location_key
+        description: "Pickup location ID (TLC LocationID)"
+        tests:
+          - not_null
+
+      - name: dropoff_location_key
+        description: "Dropoff location ID (TLC LocationID)"
+        tests:
+          - not_null
+
+      - name: pickup_time_key
+        description: "Time surrogate key format YYYYMMddHH"
+        tests:
+          - not_null
+
+  - name: stg_vendor
+    description: "Static vendor dimension — hardcoded from NYC TLC data dictionary"
+    columns:
+      - name: vendor_key
+        description: "Vendor surrogate key"
+        tests:
+          - unique
+          - not_null
+      - name: vendor_name
+        description: "Vendor name"
+        tests:
+          - not_null
+
+  - name: stg_location
+    description: "Location dimension from taxi_zone_lookup seed"
+    columns:
+      - name: location_key
+        description: "TLC LocationID"
+        tests:
+          - unique
+          - not_null
+      - name: zone
+        description: "Zone name"
+        tests:
+          - not_null
+      - name: borough
+        description: "NYC borough"
+        tests:
+          - not_null
+
+  - name: stg_time
+    description: "Time dimension generated from pickup/dropoff timestamps in warehouse"
+    columns:
+      - name: time_key
+        description: "Surrogate key format YYYYMMddHH"
+        tests:
+          - unique
+          - not_null
+      - name: hour
+        description: "Hour of day (0-23)"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 23
+
+  - name: stg_payment
+    description: "Static payment type dimension"
+    columns:
+      - name: payment_key
+        description: "Payment type surrogate key"
+        tests:
+          - unique
+          - not_null
+      - name: payment_name
+        description: "Payment type name"
+        tests:
+          - not_null
+
+  - name: stg_rate
+    description: "Static rate code dimension"
+    columns:
+      - name: rate_key
+        description: "Rate code surrogate key"
+        tests:
+          - unique
+          - not_null
+      - name: rate_name
+        description: "Rate code name"
+        tests:
           - not_null
