@@ -25,6 +25,8 @@ Processes NYC TLC Yellow Taxi trip records (2025-05 to present) through a multi-
 
 ## Architecture
 
+![Architecture Diagram](docs/image/architects.jpg)
+
 ```
 [NYC TLC - Public HTTP]
         |
