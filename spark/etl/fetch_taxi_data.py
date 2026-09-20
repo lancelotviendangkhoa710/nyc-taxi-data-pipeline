@@ -1,10 +1,9 @@
 import os
-import sys
 import requests
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
-from datetime import datetime
 from spark.config import RAW_DIR
+from spark.etl.metadata import ETLMetadata
 from spark.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -92,6 +91,8 @@ def fetch_data(start_date: str = DATA_START_DATE, end_date: str = None) -> None:
 
     logger.info("Fetching data from %s to %s.", start_date, end_date)
 
+    metadata = ETLMetadata()
+
     while current <= end:
         date_str = current.strftime("%Y-%m")
         filename = f"yellow_tripdata_{date_str}.parquet"
@@ -104,14 +105,18 @@ def fetch_data(start_date: str = DATA_START_DATE, end_date: str = None) -> None:
                 filepath.unlink()
                 try:
                     _download_file(url, filepath)
+                    metadata.mark_fetched(filename, filepath.stat().st_size)
                 except Exception as e:
                     logger.error("Failed to download %s: %s", url, e)
                     raise
             else:
                 logger.info("Skip: %s is already up to date.", filename)
+                if not metadata.status(filename):
+                    metadata.mark_fetched(filename, filepath.stat().st_size)
         else:
             try:
-                _download_file(url, filepath)
+                if _download_file(url, filepath):
+                    metadata.mark_fetched(filename, filepath.stat().st_size)
             except Exception as e:
                 logger.error("Failed to download %s: %s", url, e)
                 raise
