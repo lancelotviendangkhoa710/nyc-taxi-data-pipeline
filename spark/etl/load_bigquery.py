@@ -1,47 +1,6 @@
 ﻿from __future__ import annotations
 
-"""
-BigQuery Loader — spark/etl/load_bigquery.py
-============================================
 
-Quy trình tổng quan
--------------------
-Pipeline ETL có 2 bước Load tách biệt:
-
-    Spark (Transform)
-        │
-        ▼
-    Local Parquet (processed/)       ← buffer an toàn, tránh re-run Spark nếu BQ fail
-        │
-        ▼
-    BigQuery (yellow_taxi_raw)       ← bảng raw, dbt sẽ build dim/fact từ đây
-        │
-        ▼
-    dbt (staging → dim/fact)
-
-Tại sao giữ Local Parquet làm buffer?
---------------------------------------
-- Spark ETL tốn ~20s để chạy lại. Nếu BQ fail (network, quota, GCP 503),
-  chỉ cần retry bước BQ từ local file mà không cần khởi động lại Spark.
-- Status tracking trong metadata.json phân biệt "processed" vs "bq_loaded"
-  để pipeline tự biết resume đúng bước.
-
-Cơ chế upload song song (_load_parquet_files)
-----------------------------------------------
-Trước đây: upload tuần tự từng file → 10 file × 45s = 450s.
-Hiện tại  : submit tất cả BQ Load Job song song → BQ xử lý đồng thời
-            → tổng thời gian ≈ thời gian của file chậm nhất (~45-60s).
-
-Chi tiết flow song song:
-    1. File đầu tiên : WRITE_TRUNCATE  (xóa data cũ, ghi mới)
-    2. Các file còn lại: WRITE_APPEND  (append vào)
-    3. Submit tất cả jobs cùng lúc (không chờ nhau)
-    4. Gọi job.result(timeout=300) cho từng job để chờ hoàn thành
-       → nếu 1 job stuck quá 5 phút sẽ raise exception thay vì block mãi
-
-Incremental (1 file/tháng) vs Backfill (N file):
-    Cùng 1 code path, tự scale — không cần tách mode.
-"""
 
 import os
 from pathlib import Path
@@ -109,11 +68,14 @@ class BigQueryLoader:
     ) -> None:
         table_ref  = self._table_ref(table_name)
         job_config = bigquery.LoadJobConfig(
+            source_format=bigquery.SourceFormat.PARQUET,
+            autodetect=True,
+            write_disposition=write_disposition,
             time_partitioning=bigquery.TimePartitioning(
-            type_=bigquery.TimePartitioningType.MONTH,
-            field="pickup_date",
-        ),
-        clustering_fields=["VendorID", "PULocationID"],
+                type_=bigquery.TimePartitioningType.MONTH,
+                field="pickup_date",
+            ),
+            clustering_fields=["VendorID", "PULocationID"],
         )
 
         logger.info("Loading %d file(s) -> %s ...", len(parquet_files), table_ref)
@@ -128,9 +90,7 @@ class BigQueryLoader:
         logger.info("OK %s -- total rows: %d", table_ref, tbl.num_rows)
 
     def load_all(self) -> None:
-        """Load toan bo processed Parquet -> yellow_taxi_raw.
-        Dim/fact tables duoc tao boi dbt sau buoc nay.
-        """
+      
         self._ensure_dataset()
         parquet_dir   = PROCESSED_DIR / "yellow_taxi"
         parquet_files = sorted(parquet_dir.rglob("*.parquet"))

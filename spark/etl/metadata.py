@@ -68,6 +68,10 @@ class ETLMetadata:
 
     def mark_processed(self, filename: str, file_size: int) -> None:
         record = self._record(filename)
+        # Clear stale downstream timestamps when a file is re-processed
+        # to prevent data corruption (e.g. old bq_loaded_at surviving a re-run)
+        for stale_key in ("bq_loaded_at", "dbt_tested_at", "cleaned_at"):
+            record.pop(stale_key, None)
         record.update({"file_size": file_size, "status": "processed", "processed_at": datetime.now().isoformat(timespec="seconds")})
         self._save()
 

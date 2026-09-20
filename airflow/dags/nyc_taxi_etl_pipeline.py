@@ -10,6 +10,9 @@ The DAG is locked by ENABLE_NYC_TAXI_ETL=false by default. Set it to true only
 when the host path, GCP credential, Spark image, dbt image, and BigQuery target
 have been reviewed.
 
+Alert on failure: set ALERT_EMAIL_TO, ALERT_SMTP_USER, ALERT_SMTP_PASSWORD in .env
+to receive a Gmail notification whenever any task fails after all retries are exhausted.
+
 Author: NYC Taxi Project
 Phase: Airflow orchestration
 """
@@ -17,7 +20,10 @@ Phase: Airflow orchestration
 from __future__ import annotations
 
 import os
+import smtplib
+import textwrap
 from datetime import datetime, timedelta
+from email.mime.text import MIMEText
 from pathlib import Path, PureWindowsPath
 
 from airflow.decorators import dag, task
@@ -34,6 +40,69 @@ AIRFLOW_DATA_DIR = Path("/opt/airflow/project_data")
 START_DATE = datetime(2025, 1, 1)
 PROJECT_ROOT = os.getenv("NYC_TAXI_PROJECT_ROOT", "")
 ETL_ENABLED = os.getenv("ENABLE_NYC_TAXI_ETL", "true").lower() == "true"
+
+# ---------------------------------------------------------------------------
+# Alert configuration — read from environment, never hardcoded
+# ---------------------------------------------------------------------------
+ALERT_EMAIL_TO = os.getenv("ALERT_EMAIL_TO", "")
+ALERT_SMTP_USER = os.getenv("ALERT_SMTP_USER", "")
+ALERT_SMTP_PASSWORD = os.getenv("ALERT_SMTP_PASSWORD", "")
+ALERT_SMTP_HOST = "smtp.gmail.com"
+ALERT_SMTP_PORT = 587
+
+
+def notify_on_failure(context: dict) -> None:
+    """Send a Gmail alert when a task fails after all retries are exhausted.
+
+    Reads ALERT_EMAIL_TO, ALERT_SMTP_USER, ALERT_SMTP_PASSWORD from environment.
+    Silently skips if any of those variables are unset so that local dev runs
+    without SMTP credentials do not crash the callback itself.
+    """
+    if not all([ALERT_EMAIL_TO, ALERT_SMTP_USER, ALERT_SMTP_PASSWORD]):
+        print(
+            "notify_on_failure: ALERT_EMAIL_TO / ALERT_SMTP_USER / ALERT_SMTP_PASSWORD "
+            "not set — skipping email alert."
+        )
+        return
+
+    dag_id = context.get("dag").dag_id
+    task_id = context.get("task_instance").task_id
+    run_id = context.get("run_id", "unknown")
+    execution_date = context.get("execution_date", "unknown")
+    exception = context.get("exception", "No exception details available.")
+    log_url = context.get("task_instance").log_url
+
+    subject = f"[Airflow FAILED] {dag_id} › {task_id}"
+    body = textwrap.dedent(f"""\
+        A task in your NYC Taxi pipeline has failed.
+
+        DAG         : {dag_id}
+        Task        : {task_id}
+        Run ID      : {run_id}
+        Exec date   : {execution_date}
+        Exception   : {exception}
+
+        Log URL     : {log_url}
+
+        This task has exhausted all configured retries.
+        Check the Airflow UI for full traceback.
+    """)
+
+    msg = MIMEText(body)
+    msg["Subject"] = subject
+    msg["From"] = ALERT_SMTP_USER
+    msg["To"] = ALERT_EMAIL_TO
+
+    try:
+        with smtplib.SMTP(ALERT_SMTP_HOST, ALERT_SMTP_PORT) as server:
+            server.ehlo()
+            server.starttls()
+            server.login(ALERT_SMTP_USER, ALERT_SMTP_PASSWORD)
+            server.sendmail(ALERT_SMTP_USER, [ALERT_EMAIL_TO], msg.as_string())
+        print(f"notify_on_failure: alert sent to {ALERT_EMAIL_TO}")
+    except Exception as exc:  # noqa: BLE001
+        # Never let the alert callback itself crash Airflow task state
+        print(f"notify_on_failure: failed to send email — {exc}")
 
 
 def project_path(*parts: str) -> str:
@@ -90,6 +159,7 @@ def runtime_environment() -> dict[str, str]:
     default_args={
         "retries": 2,
         "retry_delay": timedelta(minutes=5),
+        "on_failure_callback": notify_on_failure,
     },
 )
 def nyc_taxi_etl_pipeline() -> None:

@@ -19,7 +19,7 @@ x-airflow-common: &airflow-common
   volumes:
     - ../../airflow/dags:/opt/airflow/dags
     - ../../airflow/logs:/opt/airflow/logs
-    - ../../data:/opt/airflow/project_data:ro
+    - ../../data:/opt/airflow/project_data
     # Local lab only: permits DockerOperator to create task containers.
     - /var/run/docker.sock:/var/run/docker.sock
   depends_on:
