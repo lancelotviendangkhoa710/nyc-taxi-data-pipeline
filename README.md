@@ -163,6 +163,8 @@ This architecture is deliberately designed for small-to-medium batch processing 
 | **Orchestration** | Single EC2 Airflow LocalExecutor | Cloud Composer / MWAA | Local Airflow scheduler cannot handle hundreds of concurrent DAGs. |
 | **Data Load** | Pandas/BQ SDK insert | BigQuery Load Jobs from GCS | Direct API inserts at 1TB scale are extremely slow and expensive. Loading from GCS buckets via native BQ mechanisms is heavily optimized. |
 
+<!-- CD Workflow Test Comment -->
+
 ---
 
 ### 5. Run dbt
