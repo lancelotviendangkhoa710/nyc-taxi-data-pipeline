@@ -1,0 +1,47 @@
+name: CD - Deploy to EC2
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: # Cho phép trigger thủ công trên GitHub UI
+
+jobs:
+  deploy:
+    name: Deploy to EC2
+    runs-on: ubuntu-latest
+    
+    # Chỉ chạy CD nếu CI (lint, dbt-parse) đã pass. Chỉnh theo tên job trong ci.yml của bạn
+    # needs: [lint, dbt-parse]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            echo "Starting deployment..."
+            
+            # Đi vào thư mục project
+            cd ~/nyc-taxi-de-project
+            
+            # Discard thay đổi local (nếu có) và pull code mới
+            git fetch origin main
+            git reset --hard origin/main
+            
+            # Cấp quyền lại phòng hờ
+            sudo setfacl -m user:50000:rw /var/run/docker.sock || true
+            sudo chown -R ec2-user:ec2-user ~/nyc-taxi-de-project/data || true
+            
+            # Build lại image nếu có thay đổi trong Dockerfile hoặc requirements
+            docker compose -f infrastructure/docker/docker-compose.yml build
+            
+            # Restart Airflow (Scheduler & Webserver) để nhận code Python/DAG mới
+            docker compose -f infrastructure/docker/docker-compose.airflow.yml restart
+            
+            echo "Deployment successful!"
