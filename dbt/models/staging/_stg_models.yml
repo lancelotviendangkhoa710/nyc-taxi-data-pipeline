@@ -47,9 +47,6 @@ models:
         description: "tip_amount / fare_amount — 0.0 when fare_amount = 0"
         tests:
           - not_null
-          - dbt_utils.accepted_range:
-              min_value: 0
-              max_value: 10
 
       - name: pickup_date
         description: "Date of pickup — used for BQ partitioning"

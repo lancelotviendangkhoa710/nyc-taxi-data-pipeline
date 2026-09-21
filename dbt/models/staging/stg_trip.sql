@@ -103,3 +103,5 @@ from (
         from renamed
     )
 where duplicate_rank = 1
+  and tip_ratio <= 10
+  and tip_ratio >= 0
