@@ -1,29 +1,39 @@
 ﻿# NYC Taxi Data Engineering Pipeline
 
-End-to-end batch ETLT pipeline for NYC TLC Yellow Taxi trip data --
-raw Parquet -> Spark T1 (clean & standardize) -> BigQuery staging -> dbt T2 (transform) -> Power BI.
+An end-to-end batch ETLT pipeline for NYC TLC Yellow Taxi trip data, transforming raw Parquet files into a BigQuery star schema ready for BI analytics.
 
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
-![Spark](https://img.shields.io/badge/Apache%20Spark-3.5.0-E25A1C?logo=apachespark&logoColor=white)
+![Apache Spark](https://img.shields.io/badge/Apache%20Spark-3.5.0-E25A1C?logo=apachespark&logoColor=white)
 ![BigQuery](https://img.shields.io/badge/BigQuery-GCP-4285F4?logo=googlecloud&logoColor=white)
 ![dbt](https://img.shields.io/badge/dbt-1.8.0-FF694B?logo=dbt&logoColor=white)
+![Airflow](https://img.shields.io/badge/Airflow-2.10.5-017CEE?logo=apacheairflow&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-26.x-2496ED?logo=docker&logoColor=white)
-![Status](https://img.shields.io/badge/Status-Active-brightgreen)
+![AWS EC2](https://img.shields.io/badge/AWS%20EC2-Amazon%20Linux-FF9900?logo=amazonaws&logoColor=white)
+![GitHub Actions](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-2088FF?logo=githubactions&logoColor=white)
 
 ---
 
-## Overview
+## 📌 Project Overview
 
-Processes NYC TLC Yellow Taxi trip records (2025-05 to present) through a multi-stage ETLT batch pipeline.
+Processes 16 months (2025-05 to present) of NYC TLC Yellow Taxi trip records through a multi-stage ETLT batch pipeline. The pipeline is designed around idempotency, ensuring reliable reruns without data duplication.
 
-**ETLT pattern:**
-
-- **T1 (Spark)** -- type casting, null fill, dedup, add `pickup_date`. No business logic.
-- **T2 (dbt/BigQuery)** -- filter outliers, derive metrics (`trip_duration_min`, `tip_ratio`), build dim/fact star schema.
+**ETLT Architecture:**
+- **T1 (Spark)** — File-level operations: schema enforcement, type casting, null filling, and deduplication. No business logic.
+- **T2 (dbt in BigQuery)** — Warehouse-level operations: outlier filtering, business metric derivation (`trip_duration_min`, `tip_ratio`), and building the final dimensional star schema.
 
 ---
 
-## Architecture
+## 🎯 Key Achievements
+
+- **Automated CI/CD Deployment:** Implemented automated deployment to a single-node AWS EC2 via GitHub Actions, eliminating manual SSH tasks while keeping infrastructure costs minimal.
+- **Idempotent Data Processing:** Developed a custom JSON metadata tracker to manage file states (`fetched`, `processed`, `bq_loaded`, `dbt_tested`), allowing safe pipeline recovery and resumability.
+- **Infrastructure Mastery:** Deployed the complete stack on AWS EC2 (Amazon Linux 2023), configuring Docker daemon permissions (using `setfacl` for Airflow socket access) and managing secure SSH access with Elastic IPs.
+- **Data Quality Enforcement:** Integrated `dbt test` to proactively catch data anomalies (e.g., negative fare amounts) and implemented SQL-level outlier filtering to prevent pipeline failures from anomalous records.
+- **Clear Separation of Concerns:** Kept Spark focused on heavy lifting (data cleaning) and let dbt handle SQL-based business logic, making the pipeline highly maintainable.
+
+---
+
+## 🏗️ Architecture
 
 ![Architecture Diagram](docs/image/architects.jpg)
 
@@ -33,49 +43,33 @@ Processes NYC TLC Yellow Taxi trip records (2025-05 to present) through a multi-
 [fetch_taxi_data.py]  ->  data/raw/yellow/
         |
 [Apache Spark 3.5.0 -- T1 Transform]
-  standardize_data_types()
-  handle_null_values()
-  remove_duplicates()
-  add_pickup_date()
-        |  coalesce(1) -> 1 Parquet per source_month
+  standardize_data_types() | handle_null_values() | remove_duplicates()
         |
 [BigQuery -- nyc_taxi_raw.yellow_taxi_raw]
         |
 [dbt -- T2 Transform]
   staging -> intermediate -> marts
         |
-[Power BI]
+[Power BI Dashboard]
 ```
 
 ---
 
-## Key Highlights
+## ⚙️ Tech Stack
 
-- Processes **13 months** of data (2025-05 to 2026-05)
-- **ETLT architecture** -- clean separation between Spark T1 and dbt T2
-- **Infrastructure mastery** -- deployed complete stack on AWS EC2 Amazon Linux 2023, configuring Docker daemon permissions (`setfacl` for Airflow socket access), secure SSH key management, and EIP assignments.
-- Single-file monthly staging output for the current small-batch workflow; this is intentionally not the scale-out strategy.
-- Dim tables (`dim_vendor`, `dim_payment`, `dim_rate`) hardcoded in dbt via `UNNEST(VALUES)` -- no ETL dependency
-- `dim_location` from `taxi_zone_lookup` dbt seed
-- `dim_time` generated entirely in warehouse from timestamps
-- Metadata-driven pipeline with per-file status tracking and resumable local staging.
-
----
-
-## Tech Stack
-
-| Technology | Version | Purpose |
-| :--- | :---: | :--- |
-| Python | `3.12` | Core ETL language |
-| Apache Spark (PySpark) | `3.5.0` | T1: distributed data cleaning |
-| Google BigQuery | GCP | Cloud data warehouse |
-| dbt-bigquery | `1.8.x` | T2: SQL transformation layer |
-| Docker Compose | `26.x` | Spark & dbt containerization |
-| Power BI Desktop | `2.x` | Analytics & reporting |
+| Component | Technology | Purpose |
+| :--- | :--- | :--- |
+| **Orchestration** | Apache Airflow `2.10.5` | Manage DAGs and scheduling |
+| **Compute / T1** | PySpark `3.5.0` | Distributed data cleaning |
+| **Storage (Cloud)** | Google BigQuery | Cloud Data Warehouse |
+| **Transformation / T2** | dbt `1.8.x` | SQL transformation layer |
+| **Infrastructure** | AWS EC2 (Amazon Linux) | Host server (Single-node) |
+| **Containerization**| Docker & Docker Compose | Isolate Airflow, Spark, and dbt environments |
+| **CI/CD** | GitHub Actions | Automated Linting, dbt parsing, and EC2 deployment |
 
 ---
 
-## Project Structure
+## 📁 Project Structure
 
 ```
 NYC_Taxi_Project/
