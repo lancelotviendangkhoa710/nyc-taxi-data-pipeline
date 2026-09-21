@@ -53,6 +53,7 @@ Processes NYC TLC Yellow Taxi trip records (2025-05 to present) through a multi-
 
 - Processes **13 months** of data (2025-05 to 2026-05)
 - **ETLT architecture** -- clean separation between Spark T1 and dbt T2
+- **Infrastructure mastery** -- deployed complete stack on AWS EC2 Amazon Linux 2023, configuring Docker daemon permissions (`setfacl` for Airflow socket access), secure SSH key management, and EIP assignments.
 - Single-file monthly staging output for the current small-batch workflow; this is intentionally not the scale-out strategy.
 - Dim tables (`dim_vendor`, `dim_payment`, `dim_rate`) hardcoded in dbt via `UNNEST(VALUES)` -- no ETL dependency
 - `dim_location` from `taxi_zone_lookup` dbt seed
@@ -150,6 +151,19 @@ docker compose -f docker-compose.yml build spark-etl
 # One batch at a time (picks next unprocessed file)
 docker compose -f docker-compose.yml run --rm spark-etl
 ```
+
+## Roadmap & Scalability Considerations
+
+This architecture is deliberately designed for small-to-medium batch processing (~1GB/year). If data volume scales to **1TB+/day**, the following architectural evolution is required to avoid bottlenecking and over-engineering penalties:
+
+| Component | Current (Portfolio Scale) | Target (1TB+/day Scale) | Reason |
+| :--- | :--- | :--- | :--- |
+| **Storage** | Local disk (`/data`) on EC2 | Cloud Object Storage (GCS/S3) | Local disk will fill up. Object storage offers infinite scaling and decoupling. |
+| **Compute** | Single-node Spark inside Docker | Dataproc / EMR Cluster | Single container RAM/CPU limits will OOM (Out of Memory). Need distributed worker nodes. |
+| **Orchestration** | Single EC2 Airflow LocalExecutor | Cloud Composer / MWAA | Local Airflow scheduler cannot handle hundreds of concurrent DAGs. |
+| **Data Load** | Pandas/BQ SDK insert | BigQuery Load Jobs from GCS | Direct API inserts at 1TB scale are extremely slow and expensive. Loading from GCS buckets via native BQ mechanisms is heavily optimized. |
+
+---
 
 ### 5. Run dbt
 
