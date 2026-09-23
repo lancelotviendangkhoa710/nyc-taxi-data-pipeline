@@ -2,8 +2,9 @@
 # Lưu ý: File này không được đưa lên git
 
 ## 1. Kết nối SSH
-# Thay <IP> bằng Public IPv4 hiện tại của EC2 (lấy trên AWS Console)
+
 ssh -i "D:\NYC_Taxi_Project\airflow-de-key.pem" ec2-user@3.1.224.141
+`http://3.1.224.141:8080`.
 
 ## 2. Quản lý Code trên EC2
 # Đi vào thư mục project

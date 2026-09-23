@@ -18,7 +18,6 @@ DAG_ID = "nyc_taxi_etl_pipeline"
 SPARK_IMAGE = "docker-spark-etl:latest"
 DBT_IMAGE = "docker-dbt:latest"
 CONTAINER_PROJECT_DIR = "/app"
-CONTAINER_KEYFILE = f"{CONTAINER_PROJECT_DIR}/gcp_service_account.json"
 AIRFLOW_DATA_DIR = Path("/opt/airflow/project_data")
 START_DATE = datetime(2025, 1, 1)
 PROJECT_ROOT = os.getenv("NYC_TAXI_PROJECT_ROOT", "")
@@ -104,8 +103,6 @@ def project_mounts(*, include_dbt: bool = False) -> list[Mount]:
             read_only=True,
         ),
         Mount(
-            source=project_path("gcp_service_account.json"),
-            target=CONTAINER_KEYFILE,
             type="bind",
             read_only=True,
         ),
@@ -126,7 +123,6 @@ def runtime_environment() -> dict[str, str]:
     return {
         "GCP_PROJECT_ID": os.getenv("GCP_PROJECT_ID", ""),
         "GCP_DATASET_RAW": os.getenv("GCP_DATASET_RAW", ""),
-        "GCP_KEYFILE_PATH": CONTAINER_KEYFILE,
         "ETL_LOCAL_RETENTION_DAYS": os.getenv("ETL_LOCAL_RETENTION_DAYS", "7"),
     }
 
