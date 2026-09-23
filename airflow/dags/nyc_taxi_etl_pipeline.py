@@ -102,10 +102,6 @@ def project_mounts(*, include_dbt: bool = False) -> list[Mount]:
             type="bind",
             read_only=True,
         ),
-        Mount(
-            type="bind",
-            read_only=True,
-        ),
     ]
     if include_dbt:
         mounts.append(
@@ -118,11 +114,16 @@ def project_mounts(*, include_dbt: bool = False) -> list[Mount]:
     return mounts
 
 
-def runtime_environment() -> dict[str, str]:
-    """Return non-secret runtime environment passed to ETL task containers."""
+def runtime_environment():
     return {
-        "GCP_PROJECT_ID": os.getenv("GCP_PROJECT_ID", ""),
-        "GCP_DATASET_RAW": os.getenv("GCP_DATASET_RAW", ""),
+        "AWS_REGION": os.getenv("AWS_REGION", "us-east-1"),
+        "S3_BUCKET": os.getenv("S3_BUCKET", "nyc-taxi-data-lake"),
+        "REDSHIFT_HOST": os.getenv("REDSHIFT_HOST", ""),
+        "REDSHIFT_PORT": os.getenv("REDSHIFT_PORT", "5439"),
+        "REDSHIFT_DB": os.getenv("REDSHIFT_DB", "dev"),
+        "REDSHIFT_USER": os.getenv("REDSHIFT_USER", "awsuser"),
+        "REDSHIFT_PASSWORD": os.getenv("REDSHIFT_PASSWORD", ""),
+        "REDSHIFT_IAM_ROLE": os.getenv("REDSHIFT_IAM_ROLE", ""),
         "ETL_LOCAL_RETENTION_DAYS": os.getenv("ETL_LOCAL_RETENTION_DAYS", "7"),
     }
 

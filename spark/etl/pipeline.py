@@ -87,7 +87,7 @@ class YellowTaxiETLPipeline:
             input_size_bytes=input_size_bytes,
         )
 
-    def load_bigquery(self, filename: str) -> None:
+    def load_dwh(self, filename: str) -> None:
         self.logger.info("=== LOAD: local Parquet → S3 → Redshift ===")
         from spark.etl.load_redshift import RedshiftLoader
         RedshiftLoader().load_batch(
@@ -123,9 +123,9 @@ class YellowTaxiETLPipeline:
         try:
             if self.metadata.status(filename) == "processed":
                 t_bq = time.perf_counter()
-                self.load_bigquery(filename)
+                self.load_dwh(filename)
                 self.metadata.mark_bq_loaded(filename)
-                self.stage_timings["Load BigQuery"] = time.perf_counter() - t_bq
+                self.stage_timings["Load DWH"] = time.perf_counter() - t_bq
                 self._log_stage_timings(time.perf_counter() - pipeline_start)
                 return
 
@@ -169,19 +169,19 @@ class YellowTaxiETLPipeline:
             self.metadata.mark_processed(filename, target_file.stat().st_size)
             self.stage_timings["Load Local Parquet"] = time.perf_counter() - t0
 
-            # ── 5. Load → BigQuery ────────────────────────────────────────
+            # ── 5. Load → DWH ────────────────────────────────────────
             t0 = time.perf_counter()
             try:
-                self.load_bigquery(filename)
+                self.load_dwh(filename)
                 self.metadata.mark_bq_loaded(filename)
-                self.stage_timings["Load BigQuery"] = time.perf_counter() - t0
+                self.stage_timings["Load DWH"] = time.perf_counter() - t0
             except Exception as bq_err:
                 self.logger.warning(
-                    "BigQuery load failed: %s\n"
-                    "Data batch retained in processed/. Will retry BigQuery load on next run.",
+                    "DWH load failed: %s\n"
+                    "Data batch retained in processed/. Will retry DWH load on next run.",
                     bq_err,
                 )
-                self.stage_timings["Load BigQuery (Failed)"] = time.perf_counter() - t0
+                self.stage_timings["Load DWH (Failed)"] = time.perf_counter() - t0
 
             total_elapsed = time.perf_counter() - pipeline_start
             self._log_stage_timings(total_elapsed)

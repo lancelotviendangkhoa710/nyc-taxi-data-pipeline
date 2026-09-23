@@ -9,8 +9,7 @@ from airflow.providers.docker.operators.docker import DockerOperator
 from docker.types import Mount
 
 DAG_ID="nyc_taxi_full_reload"; SPARK_IMAGE="docker-spark-etl:latest"; DBT_IMAGE="docker-dbt:latest"
-CONTAINER_PROJECT_DIR="/app"; CONTAINER_KEYFILE=f"{CONTAINER_PROJECT_DIR}/gcp_service_account.json"
-START_DATE=datetime(2025,1,1)
+CONTAINER_PROJECT_DIR="/app"; START_DATE=datetime(2025,1,1)
 PROJECT_ROOT=os.getenv("NYC_TAXI_PROJECT_ROOT",""); ETL_ENABLED=os.getenv("ENABLE_NYC_TAXI_ETL","true").lower()=="true"
 ALERT_EMAIL_TO=os.getenv("ALERT_EMAIL_TO",""); ALERT_SMTP_USER=os.getenv("ALERT_SMTP_USER","")
 ALERT_SMTP_PASSWORD=os.getenv("ALERT_SMTP_PASSWORD",""); ALERT_SMTP_HOST="smtp.gmail.com"; ALERT_SMTP_PORT=587
@@ -35,14 +34,22 @@ def project_mounts(*, include_dbt=False):
         Mount(source=project_path("data"),target=f"{CONTAINER_PROJECT_DIR}/data",type="bind"),
         Mount(source=project_path("spark"),target=f"{CONTAINER_PROJECT_DIR}/spark",type="bind",read_only=True),
         Mount(source=project_path("scripts"),target=f"{CONTAINER_PROJECT_DIR}/scripts",type="bind",read_only=True),
-        Mount(source=project_path("gcp_service_account.json"),target=CONTAINER_KEYFILE,type="bind",read_only=True),
     ]
     if include_dbt: m.append(Mount(source=project_path("dbt"),target=f"{CONTAINER_PROJECT_DIR}/dbt",type="bind"))
     return m
 
 def runtime_environment():
-    return {"GCP_PROJECT_ID":os.getenv("GCP_PROJECT_ID",""),"GCP_DATASET_RAW":os.getenv("GCP_DATASET_RAW",""),
-            "GCP_KEYFILE_PATH":CONTAINER_KEYFILE,"ETL_LOCAL_RETENTION_DAYS":os.getenv("ETL_LOCAL_RETENTION_DAYS","7")}
+    return {
+        "AWS_REGION": os.getenv("AWS_REGION", "us-east-1"),
+        "S3_BUCKET": os.getenv("S3_BUCKET", "nyc-taxi-data-lake"),
+        "REDSHIFT_HOST": os.getenv("REDSHIFT_HOST", ""),
+        "REDSHIFT_PORT": os.getenv("REDSHIFT_PORT", "5439"),
+        "REDSHIFT_DB": os.getenv("REDSHIFT_DB", "dev"),
+        "REDSHIFT_USER": os.getenv("REDSHIFT_USER", "awsuser"),
+        "REDSHIFT_PASSWORD": os.getenv("REDSHIFT_PASSWORD", ""),
+        "REDSHIFT_IAM_ROLE": os.getenv("REDSHIFT_IAM_ROLE", ""),
+        "ETL_LOCAL_RETENTION_DAYS": os.getenv("ETL_LOCAL_RETENTION_DAYS", "7"),
+    }
 
 @dag(dag_id=DAG_ID,description="Full reload MANUAL only.",start_date=START_DATE,schedule=None,
      catchup=False,max_active_runs=1,tags=["nyc-taxi","production","full-reload","spark","dbt"],
@@ -62,7 +69,7 @@ def nyc_taxi_full_reload():
             docker_url="unix://var/run/docker.sock",auto_remove="success",mount_tmp_dir=False)
 
     reset_local  = docker("reset_local_data","docker-spark-etl:latest",["/app/scripts/reset_local_data.py"])
-    reset_bq     = docker("reset_bigquery",  "docker-spark-etl:latest",["/app/scripts/reset_bigquery_noconfirm.py"])
+    reset_dwh     = docker("reset_dwh",  "docker-spark-etl:latest",["/app/scripts/reset_redshift_noconfirm.py"])
     fetch        = DockerOperator(task_id="fetch_data",image=SPARK_IMAGE,entrypoint=["python"],
                      command=["/app/spark/etl/fetch_taxi_data.py"],environment=runtime_environment(),
                      mounts=project_mounts(),docker_url="unix://var/run/docker.sock",
@@ -74,6 +81,6 @@ def nyc_taxi_full_reload():
     dbt_test     = docker("dbt_test",   DBT_IMAGE,["cd /app/dbt && dbt test"], dbt=True)
     finalize     = docker("finalize_verified_batches",DBT_IMAGE,["/app/spark/etl/finalize.py"],dbt=True)
 
-    validate_config() >> reset_local >> reset_bq >> fetch >> spark >> dbt_debug >> dbt_deps >> dbt_run >> dbt_test >> finalize
+    validate_config() >> reset_local >> reset_dwh >> fetch >> spark >> dbt_debug >> dbt_deps >> dbt_run >> dbt_test >> finalize
 
 nyc_taxi_full_reload()

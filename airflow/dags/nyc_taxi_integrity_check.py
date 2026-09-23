@@ -11,7 +11,6 @@ from docker.types import Mount
 DAG_ID                = "nyc_taxi_integrity_check"
 SPARK_IMAGE           = "docker-spark-etl:latest"
 CONTAINER_PROJECT_DIR = "/app"
-CONTAINER_KEYFILE     = f"{CONTAINER_PROJECT_DIR}/gcp_service_account.json"
 START_DATE            = datetime(2025, 1, 1)
 PROJECT_ROOT          = os.getenv("NYC_TAXI_PROJECT_ROOT", "")
 
@@ -24,15 +23,20 @@ def project_mounts():
         Mount(source=project_path("data"),    target=f"{CONTAINER_PROJECT_DIR}/data",    type="bind"),
         Mount(source=project_path("spark"),   target=f"{CONTAINER_PROJECT_DIR}/spark",   type="bind", read_only=True),
         Mount(source=project_path("scripts"), target=f"{CONTAINER_PROJECT_DIR}/scripts", type="bind", read_only=True),
-        Mount(source=project_path("gcp_service_account.json"), target=CONTAINER_KEYFILE, type="bind", read_only=True),
+        
     ]
 
 
 def runtime_environment():
     return {
-        "GCP_PROJECT_ID":           os.getenv("GCP_PROJECT_ID", ""),
-        "GCP_DATASET_RAW":          os.getenv("GCP_DATASET_RAW", ""),
-        "GCP_KEYFILE_PATH":         CONTAINER_KEYFILE,
+        "AWS_REGION": os.getenv("AWS_REGION", "us-east-1"),
+        "S3_BUCKET": os.getenv("S3_BUCKET", "nyc-taxi-data-lake"),
+        "REDSHIFT_HOST": os.getenv("REDSHIFT_HOST", ""),
+        "REDSHIFT_PORT": os.getenv("REDSHIFT_PORT", "5439"),
+        "REDSHIFT_DB": os.getenv("REDSHIFT_DB", "dev"),
+        "REDSHIFT_USER": os.getenv("REDSHIFT_USER", "awsuser"),
+        "REDSHIFT_PASSWORD": os.getenv("REDSHIFT_PASSWORD", ""),
+        "REDSHIFT_IAM_ROLE": os.getenv("REDSHIFT_IAM_ROLE", ""),
         "ETL_LOCAL_RETENTION_DAYS": os.getenv("ETL_LOCAL_RETENTION_DAYS", "7"),
     }
 
@@ -40,7 +44,7 @@ def runtime_environment():
 @dag(
     dag_id=DAG_ID,
     description=(
-        "Ngay 15 moi thang: query BQ kiem tra tung thang co du du lieu khong. "
+        "Ngay 15 moi thang: query Redshift kiem tra tung thang co du du lieu khong. "
         "Neu thieu/lung lo -> trigger nyc_taxi_full_reload tu dong."
     ),
     start_date=START_DATE,
@@ -52,12 +56,12 @@ def runtime_environment():
 )
 def nyc_taxi_integrity_check():
 
-    # ── 1. Query BQ, ghi integrity_report.json ───────────────────────────
+    # ── 1. Query Redshift, ghi integrity_report.json ───────────────────────────
     run_integrity_check = DockerOperator(
         task_id="run_integrity_check",
         image=SPARK_IMAGE,
         entrypoint=["python"],
-        command=["/app/scripts/check_bq_integrity.py"],
+        command=["/app/scripts/check_redshift_integrity.py"],
         environment=runtime_environment(),
         mounts=project_mounts(),
         docker_url="unix://var/run/docker.sock",
@@ -85,8 +89,8 @@ def nyc_taxi_integrity_check():
 
         if report.get("ok") or not repair_needed:
             months = report.get("expected_months", [])
-            print(f"[OK] Tat ca {len(months)} thang co du lieu day du tren BQ.")
-            raise AirflowSkipException("BQ day du — khong can repair.")
+            print(f"[OK] Tat ca {len(months)} thang co du lieu day du tren Redshift.")
+            raise AirflowSkipException("Redshift day du — khong can repair.")
 
         print(f"[ACTION] Phat hien {len(repair_needed)} thang bi thieu/lung lo: {repair_needed}")
         print("[ACTION] Se trigger nyc_taxi_full_reload de rebuild toan bo.")

@@ -38,7 +38,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install "dbt-bigquery>=1.8.0"
+      - run: pip install "dbt-redshift>=1.8.0"
       - run: dbt deps --project-dir dbt --profiles-dir dbt
       - run: dbt parse --project-dir dbt --profiles-dir dbt --no-partial-parse
 
