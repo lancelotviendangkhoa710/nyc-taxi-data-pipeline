@@ -149,7 +149,7 @@ def nyc_taxi_etl_pipeline() -> None:
         """Fail before any write if the production switch or required host files are absent."""
         if not ETL_ENABLED:
             raise AirflowFailException(
-                "ETL blocked: set ENABLE_NYC_TAXI_ETL=true in .env after reviewing BigQuery writes."
+                "ETL blocked: set ENABLE_NYC_TAXI_ETL=true in .env after reviewing Redshift and S3 writes."
             )
         if not PROJECT_ROOT:
             raise AirflowFailException("ETL blocked: NYC_TAXI_PROJECT_ROOT is not configured.")
