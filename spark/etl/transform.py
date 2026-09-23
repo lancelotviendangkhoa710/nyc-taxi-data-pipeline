@@ -6,7 +6,6 @@ logger = get_logger("spark.etl.transform")
 
 
 def handle_null_values(df: DataFrame) -> DataFrame:
-    """T1: Fill missing values."""
     logger.info("Processing Null values...")
     default_values = {
         "passenger_count": 1,
@@ -23,13 +22,12 @@ def handle_null_values(df: DataFrame) -> DataFrame:
 
 
 def remove_duplicates(df: DataFrame) -> DataFrame:
-    """T1: remove duplicate rows from source."""
     logger.info("Removing duplicate records...")
     return df.dropDuplicates()
 
 
 def standardize_data_types(df: DataFrame) -> DataFrame:
-    """T1: Cast kiểu dữ liệu về đúng type — không transform value."""
+
     logger.info("Standardizing column data types...")
     df = df.withColumn("tpep_pickup_datetime",  F.col("tpep_pickup_datetime").cast("timestamp"))
     df = df.withColumn("tpep_dropoff_datetime", F.col("tpep_dropoff_datetime").cast("timestamp"))
@@ -41,7 +39,6 @@ def standardize_data_types(df: DataFrame) -> DataFrame:
 
 
 def add_pickup_date(df: DataFrame) -> DataFrame:
-    """T1: Thêm pickup_date — cần thiết để partition Parquet theo ngày."""
     logger.info("Adding pickup_date column for partitioning...")
     return df.withColumn("pickup_date", F.to_date("tpep_pickup_datetime"))
 

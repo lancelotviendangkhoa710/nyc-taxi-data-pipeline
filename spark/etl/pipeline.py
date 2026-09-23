@@ -88,9 +88,9 @@ class YellowTaxiETLPipeline:
         )
 
     def load_bigquery(self, filename: str) -> None:
-        self.logger.info("=== LOAD: local Parquet → BigQuery ===")
-        from spark.etl.load_bigquery import BigQueryLoader
-        BigQueryLoader().load_batch(
+        self.logger.info("=== LOAD: local Parquet → S3 → Redshift ===")
+        from spark.etl.load_redshift import RedshiftLoader
+        RedshiftLoader().load_batch(
             self.metadata.processed_path(filename),
             self.metadata._record(filename)["source_month"],
         )

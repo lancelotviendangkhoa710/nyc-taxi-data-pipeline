@@ -1,0 +1,41 @@
+# Cheat Sheet: Tương tác với EC2 NYC Taxi
+# Lưu ý: File này không được đưa lên git
+
+## 1. Kết nối SSH
+# Thay <IP> bằng Public IPv4 hiện tại của EC2 (lấy trên AWS Console)
+ssh -i "D:\NYC_Taxi_Project\airflow-de-key.pem" ec2-user@3.1.224.141
+
+## 2. Quản lý Code trên EC2
+# Đi vào thư mục project
+cd ~/nyc-taxi-de-project
+# Cập nhật code mới nhất từ GitHub
+git pull origin main
+
+## 3. Quản lý Airflow (bằng Docker Compose)
+# Nhớ: Phải đứng ở thư mục ~/nyc-taxi-de-project mới chạy được các lệnh này
+
+# Kiểm tra trạng thái các container (Up hay Exited)
+docker compose -f infrastructure/docker/docker-compose.airflow.yml ps
+
+# Khởi động lại toàn bộ Airflow (khi đổi biến môi trường, sửa lỗi docker.sock, v.v.)
+docker compose -f infrastructure/docker/docker-compose.airflow.yml restart
+
+# Tắt hẳn hệ thống Airflow
+docker compose -f infrastructure/docker/docker-compose.airflow.yml down
+
+# Bật lại hệ thống Airflow (chạy ngầm)
+docker compose -f infrastructure/docker/docker-compose.airflow.yml up -d
+
+# Xem log liên tục (nhấn Ctrl+C để thoát)
+docker compose -f infrastructure/docker/docker-compose.airflow.yml logs -f
+
+# Xem log của một task/container cụ thể (ví dụ: webserver)
+docker compose -f infrastructure/docker/docker-compose.airflow.yml logs -f airflow-webserver
+
+## 4. Xử lý lỗi thường gặp
+# Lỗi DockerOperator / docker.sock Permission Denied
+sudo chmod 666 /var/run/docker.sock
+
+# Lỗi thư mục data/logs bị cấm quyền ghi (Permission denied Errno 13)
+sudo chmod -R 777 ~/nyc-taxi-de-project/airflow/logs
+sudo chown -R ec2-user:ec2-user ~/nyc-taxi-de-project/data

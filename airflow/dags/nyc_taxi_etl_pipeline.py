@@ -1,21 +1,4 @@
-"""
-airflow/dags/nyc_taxi_etl_pipeline.py
---------------------------------------
-Production orchestration for the NYC Taxi batch pipeline.
 
-Flow:
-preflight -> Spark ETL -> dbt debug -> dbt deps -> dbt run -> dbt test -> finalize.
-
-The DAG is locked by ENABLE_NYC_TAXI_ETL=false by default. Set it to true only
-when the host path, GCP credential, Spark image, dbt image, and BigQuery target
-have been reviewed.
-
-Alert on failure: set ALERT_EMAIL_TO, ALERT_SMTP_USER, ALERT_SMTP_PASSWORD in .env
-to receive a Gmail notification whenever any task fails after all retries are exhausted.
-
-Author: NYC Taxi Project
-Phase: Airflow orchestration
-"""
 
 from __future__ import annotations
 

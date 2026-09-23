@@ -2,11 +2,13 @@ nyc_taxi:
   target: dev
   outputs:
     dev:
-      type: bigquery
-      method: service-account
-      project: nyc-taxi-data-pipeline-507015
-      dataset: nyc_taxi_dbt
-      keyfile: "{{ env_var('GCP_KEYFILE_PATH', '/app/gcp_service_account.json') }}"
+      type: redshift
+      host: "{{ env_var('REDSHIFT_HOST') }}"
+      user: "{{ env_var('REDSHIFT_USER') }}"
+      password: "{{ env_var('REDSHIFT_PASSWORD') }}"
+      port: 5439
+      dbname: "{{ env_var('REDSHIFT_DB') }}"
+      schema: public
       threads: 4
-      timeout_seconds: 300
-      location: US
+      keepalives_idle: 240
+      search_path: public

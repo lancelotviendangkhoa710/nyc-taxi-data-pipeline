@@ -8,41 +8,16 @@ with source as (
 cleaned as (
     select *
     from source
-    where tpep_pickup_datetime is not null
-        and tpep_dropoff_datetime is not null
-        and trip_distance > 0
-        and trip_distance <= 100
-        and fare_amount >= 2.5
-        and fare_amount <= 1000
-        and COALESCE(RatecodeID, 1) != 99
 ),
 identified as (
     select *,
-        TO_HEX(
-            SHA256(
-                TO_JSON_STRING(
-                    STRUCT(
-                        VendorID,
-                        tpep_pickup_datetime,
-                        tpep_dropoff_datetime,
-                        passenger_count,
-                        trip_distance,
-                        RatecodeID,
-                        PULocationID,
-                        DOLocationID,
-                        payment_type,
-                        fare_amount,
-                        extra,
-                        tip_amount,
-                        tolls_amount,
-                        congestion_surcharge,
-                        Airport_fee,
-                        cbd_congestion_fee,
-                        total_amount
-                    )
-                )
-            )
-        ) AS trip_id
+        {{ dbt_utils.generate_surrogate_key([
+            'VendorID', 'tpep_pickup_datetime', 'tpep_dropoff_datetime',
+            'passenger_count', 'trip_distance', 'RatecodeID', 'PULocationID',
+            'DOLocationID', 'payment_type', 'fare_amount', 'extra', 'tip_amount',
+            'tolls_amount', 'congestion_surcharge', 'Airport_fee', 'cbd_congestion_fee',
+            'total_amount'
+        ]) }} AS trip_id
     from cleaned
 ),
 renamed as (
@@ -53,10 +28,10 @@ renamed as (
             ELSE 7
         END AS vendor_key,
         CAST(
-            FORMAT_TIMESTAMP('%Y%m%d%H', tpep_pickup_datetime) AS INT64
+            TO_CHAR(tpep_pickup_datetime, 'YYYYMMDDHH24') AS INT8
         ) AS pickup_time_key,
         CAST(
-            FORMAT_TIMESTAMP('%Y%m%d%H', tpep_dropoff_datetime) AS INT64
+            TO_CHAR(tpep_dropoff_datetime, 'YYYYMMDDHH24') AS INT8
         ) AS dropoff_time_key,
         COALESCE(PULocationID, 0) AS pickup_location_key,
         COALESCE(DOLocationID, 0) AS dropoff_location_key,
@@ -75,10 +50,10 @@ renamed as (
         total_amount,
         -- Derived metrics (T2: business logic trong warehouse)
         ROUND(
-            TIMESTAMP_DIFF(
-                tpep_dropoff_datetime,
+            DATEDIFF(
+                second,
                 tpep_pickup_datetime,
-                SECOND
+                tpep_dropoff_datetime
             ) / 60.0,
             2
         ) AS trip_duration_min,

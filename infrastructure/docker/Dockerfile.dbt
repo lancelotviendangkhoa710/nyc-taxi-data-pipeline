@@ -16,7 +16,7 @@ ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app
 
 RUN pip install --no-cache-dir \
-    "dbt-bigquery>=1.7.0" \
+    "dbt-redshift>=1.7.0" \
     python-dotenv
 
 WORKDIR /app
