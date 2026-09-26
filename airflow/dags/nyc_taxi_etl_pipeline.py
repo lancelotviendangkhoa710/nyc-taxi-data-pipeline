@@ -114,10 +114,17 @@ def project_mounts(*, include_dbt: bool = False) -> list[Mount]:
     return mounts
 
 
-def runtime_environment():
-    return {
-        "AWS_ACCESS_KEY_ID": os.getenv("AWS_ACCESS_KEY_ID", ""),
-        "AWS_SECRET_ACCESS_KEY": os.getenv("AWS_SECRET_ACCESS_KEY", ""),
+def runtime_environment() -> dict:
+    """Build environment dict for DockerOperator containers.
+
+    AWS credentials are only forwarded when explicitly set in the host
+    environment.  When running on an EC2 instance with an IAM Instance Profile,
+    AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY are intentionally absent so that
+    boto3 inside the container falls back to the Instance Metadata Service
+    (IMDS) rather than receiving empty strings (which bypass IMDS and raise
+    NoCredentialsError).
+    """
+    env: dict[str, str] = {
         "AWS_REGION": os.getenv("AWS_REGION", "us-east-1"),
         "S3_BUCKET": os.getenv("S3_BUCKET", "nyc-taxi-data-lake"),
         "REDSHIFT_HOST": os.getenv("REDSHIFT_HOST", ""),
@@ -128,6 +135,16 @@ def runtime_environment():
         "REDSHIFT_IAM_ROLE": os.getenv("REDSHIFT_IAM_ROLE", ""),
         "ETL_LOCAL_RETENTION_DAYS": os.getenv("ETL_LOCAL_RETENTION_DAYS", "7"),
     }
+
+    # Only inject static credentials when they are explicitly provided.
+    # Omitting them lets boto3 fall back to the EC2 IAM Instance Profile (IMDS).
+    aws_key = os.getenv("AWS_ACCESS_KEY_ID", "")
+    aws_secret = os.getenv("AWS_SECRET_ACCESS_KEY", "")
+    if aws_key and aws_secret:
+        env["AWS_ACCESS_KEY_ID"] = aws_key
+        env["AWS_SECRET_ACCESS_KEY"] = aws_secret
+
+    return env
 
 
 @dag(

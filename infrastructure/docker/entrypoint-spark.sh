@@ -25,13 +25,23 @@ echo "Spark version: $(ls $SPARK_HOME/jars/spark-core*.jar 2>/dev/null | head -1
 echo "Checking Python packages..."
 python -c "import pyspark; print('PySpark version:', pyspark.__version__)"
 
-# Kiểm tra GCP credentials
-echo "✓ Checking GCP Credentials..."
-if [ ! -f "/app/gcp_service_account.json" ]; then
-    echo "❌ GCP Service Account key not found at /app/gcp_service_account.json! Exiting..."
+# Kiểm tra AWS credentials (static key hoặc IMDS/IAM role)
+echo "Checking AWS Credentials..."
+if python -c "
+import boto3, sys
+try:
+    sts = boto3.client('sts')
+    identity = sts.get_caller_identity()
+    print('AWS Credentials OK - ARN:', identity['Arn'])
+except Exception as e:
+    print('AWS Credentials not found:', e)
+    sys.exit(1)
+"; then
+    :
+else
+    echo "AWS credentials unavailable. Exiting..."
     exit 1
 fi
-echo "✓ GCP Credentials found!"
 
 # Chạy Spark ETL job (nếu có main script)
 

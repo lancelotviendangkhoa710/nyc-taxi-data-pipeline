@@ -21,7 +21,6 @@ REDSHIFT_PASSWORD = os.getenv("REDSHIFT_PASSWORD", "Password123")
 IAM_ROLE = os.getenv("REDSHIFT_IAM_ROLE", "arn:aws:iam::123456789012:role/RedshiftS3Access")
 
 class RedshiftLoader:
-    """Load du lieu tu local Parquet -> S3 -> Redshift table yellow_taxi_raw."""
 
     def __init__(self) -> None:
         self.s3_client = boto3.client("s3", region_name=AWS_REGION)

@@ -16,7 +16,7 @@ git pull origin main
 # Nhớ: Phải đứng ở thư mục ~/nyc-taxi-de-project mới chạy được các lệnh này
 
 # Kiểm tra trạng thái các container (Up hay Exited)
-docker compose -f infrastructure/docker/docker-compose.airflow.yml ps
+z
 
 # Khởi động lại toàn bộ Airflow (khi đổi biến môi trường, sửa lỗi docker.sock, v.v.)
 docker compose -f infrastructure/docker/docker-compose.airflow.yml restart

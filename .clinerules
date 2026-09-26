@@ -1,0 +1,15 @@
+# Cline Rules for NYC Taxi Data Engineering Project
+
+## Architecture Rules
+1. **Always read `.agent/README.md` first** for detailed instructions, conventions, and design decisions. 
+2. The current tech stack uses **Amazon Redshift** as the Data Warehouse and **Amazon S3** as Data Lake/Backup. It uses **Docker/EC2** for Spark (PySpark 3.5.0), **Airflow** for orchestration, and **dbt-redshift** for transformations. 
+3. Do not assume or revert back to GCP or BigQuery context unless explicitly instructed by the user, as the project has been updated.
+4. Python environment is 3.12. Ensure compatibility with `pyproject.toml`.
+5. Be strict about idempotent pipeline designs (refer to `.agent/decisions.md`).
+
+## Workflow Rules
+1. When asked to implement or fix, ensure you run unit tests if applicable.
+2. Read `spark/config.py` for variables/paths instead of hardcoding.
+3. Don't write fake or placeholder code. Deliver complete implementation.
+4. Respect `.env` configurations (AWS credentials and connection variables are loaded from environment). Do not print or commit actual credentials.
+5. All PySpark ETL must follow the established `extract` -> `validate` -> `transform` -> `load` flow documented in `.agent/workflow.md` (or equivalent code structure in `spark/etl/pipeline.py`).
