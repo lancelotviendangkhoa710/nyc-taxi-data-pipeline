@@ -54,22 +54,19 @@ class RedshiftLoader:
                 passenger_count INT,
                 trip_distance FLOAT8,
                 RatecodeID INT,
-                store_and_fwd_flag VARCHAR(1),
                 PULocationID INT,
                 DOLocationID INT,
                 payment_type INT,
                 fare_amount FLOAT8,
                 extra FLOAT8,
-                mta_tax FLOAT8,
                 tip_amount FLOAT8,
                 tolls_amount FLOAT8,
-                improvement_surcharge FLOAT8,
                 total_amount FLOAT8,
                 congestion_surcharge FLOAT8,
                 Airport_fee FLOAT8,
                 cbd_congestion_fee FLOAT8,
-                pickup_date DATE,
-                source_month VARCHAR(7)
+                source_month VARCHAR(7),
+                pickup_date DATE
             );
         """)
 
