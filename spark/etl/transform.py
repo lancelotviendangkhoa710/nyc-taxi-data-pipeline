@@ -1,5 +1,6 @@
 from pyspark.sql import DataFrame
 import pyspark.sql.functions as F
+from pyspark.sql.types import TimestampType
 from spark.utils.logger import get_logger
 
 logger = get_logger("spark.etl.transform")
@@ -29,10 +30,10 @@ def remove_duplicates(df: DataFrame) -> DataFrame:
 def standardize_data_types(df: DataFrame) -> DataFrame:
 
     logger.info("Standardizing column data types...")
-    # Cast timestamp to microsecond precision (timestamp_us) — Redshift COPY
-    # FORMAT AS PARQUET does not support nanosecond timestamps (timestamp[ns]).
-    df = df.withColumn("tpep_pickup_datetime",  F.col("tpep_pickup_datetime").cast("timestamp_us"))
-    df = df.withColumn("tpep_dropoff_datetime", F.col("tpep_dropoff_datetime").cast("timestamp_us"))
+    # PySpark 3.5 TimestampType writes microsecond parquet (timestamp_us).
+    # Redshift COPY FORMAT AS PARQUET rejects nanosecond timestamps.
+    df = df.withColumn("tpep_pickup_datetime",  F.col("tpep_pickup_datetime").cast(TimestampType()))
+    df = df.withColumn("tpep_dropoff_datetime", F.col("tpep_dropoff_datetime").cast(TimestampType()))
     df = df.withColumn("passenger_count",       F.col("passenger_count").cast("integer"))
     df = df.withColumn("trip_distance",         F.col("trip_distance").cast("double"))
     df = df.withColumn("fare_amount",           F.col("fare_amount").cast("double"))
