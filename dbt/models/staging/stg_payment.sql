@@ -2,12 +2,10 @@
 -- Dim payment type tĩnh — hardcode tại đây, không phụ thuộc ETL load.
 -- Source: NYC TLC data dictionary.
 
-select payment_key, payment_name
-from UNNEST([
-    STRUCT(1 AS payment_key, 'Credit card' AS payment_name),
-    STRUCT(2,                'Cash'),
-    STRUCT(3,                'No charge'),
-    STRUCT(4,                'Dispute'),
-    STRUCT(5,                'Unknown'),
-    STRUCT(6,                'Voided trip')
-])
+select 1 AS payment_key, 'Credit card'   AS payment_name union all
+select 2,                'Cash'                           union all
+select 3,                'No charge'                      union all
+select 4,                'Dispute'                        union all
+select 5,                'Unknown'                        union all
+select 6,                'Voided trip'
+

@@ -64,19 +64,36 @@ renamed as (
             END,
             4
         ) AS tip_ratio,
-        DATE(tpep_pickup_datetime) AS pickup_date
+        DATE(tpep_pickup_datetime) AS pickup_date,
+        ROW_NUMBER() OVER (
+            PARTITION BY trip_id
+            ORDER BY trip_id
+        ) AS duplicate_rank
     from identified
 )
-select *
-except (duplicate_rank)
-from (
-        select *,
-            ROW_NUMBER() over (
-                partition by trip_id
-                order by trip_id
-            ) as duplicate_rank
-        from renamed
-    )
+select
+    trip_id,
+    vendor_key,
+    pickup_time_key,
+    dropoff_time_key,
+    pickup_location_key,
+    dropoff_location_key,
+    payment_key,
+    rate_key,
+    passenger_count,
+    trip_distance,
+    fare_amount,
+    extra,
+    tip_amount,
+    tolls_amount,
+    congestion_surcharge,
+    airport_fee,
+    cbd_congestion_fee,
+    total_amount,
+    trip_duration_min,
+    tip_ratio,
+    pickup_date
+from renamed
 where duplicate_rank = 1
   and tip_ratio <= 10
   and tip_ratio >= 0

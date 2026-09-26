@@ -2,14 +2,14 @@
 -- JOIN LocationID từ yellow_taxi_raw với taxi_zone_lookup seed
 -- để có zone, borough, service_zone đầy đủ.
 
-with raw as (
+with source as (
     select * from {{ source('warehouse', 'yellow_taxi_raw') }}
 ),
 
 all_locations as (
-    select COALESCE(PULocationID, 0) AS location_key from raw
-    union distinct
-    select COALESCE(DOLocationID, 0) AS location_key from raw
+    select COALESCE(PULocationID, 0) AS location_key from source
+    union all
+    select COALESCE(DOLocationID, 0) AS location_key from source
 ),
 
 zone_lookup as (
@@ -29,3 +29,4 @@ select
 from all_locations l
 left join zone_lookup z using (location_key)
 where l.location_key > 0
+

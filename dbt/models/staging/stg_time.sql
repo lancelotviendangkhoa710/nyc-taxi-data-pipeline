@@ -1,14 +1,13 @@
-with raw as (
+with source as (
     select * from {{ source('warehouse', 'yellow_taxi_raw') }}
 ),
 all_timestamps as (
     select tpep_pickup_datetime as ts
-    from raw
+    from source
     where tpep_pickup_datetime is not null
-    union
-    distinct
+    union all
     select tpep_dropoff_datetime as ts
-    from raw
+    from source
     where tpep_dropoff_datetime is not null
 ),
 time_dim as (
