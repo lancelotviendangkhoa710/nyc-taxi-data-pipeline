@@ -29,12 +29,16 @@ def remove_duplicates(df: DataFrame) -> DataFrame:
 def standardize_data_types(df: DataFrame) -> DataFrame:
 
     logger.info("Standardizing column data types...")
-    df = df.withColumn("tpep_pickup_datetime",  F.col("tpep_pickup_datetime").cast("timestamp"))
-    df = df.withColumn("tpep_dropoff_datetime", F.col("tpep_dropoff_datetime").cast("timestamp"))
+    # Cast timestamp to microsecond precision (timestamp_us) — Redshift COPY
+    # FORMAT AS PARQUET does not support nanosecond timestamps (timestamp[ns]).
+    df = df.withColumn("tpep_pickup_datetime",  F.col("tpep_pickup_datetime").cast("timestamp_us"))
+    df = df.withColumn("tpep_dropoff_datetime", F.col("tpep_dropoff_datetime").cast("timestamp_us"))
     df = df.withColumn("passenger_count",       F.col("passenger_count").cast("integer"))
     df = df.withColumn("trip_distance",         F.col("trip_distance").cast("double"))
     df = df.withColumn("fare_amount",           F.col("fare_amount").cast("double"))
     df = df.withColumn("tip_amount",            F.col("tip_amount").cast("double"))
+    df = df.withColumn("RatecodeID",            F.col("RatecodeID").cast("integer"))
+    df = df.withColumn("payment_type",          F.col("payment_type").cast("integer"))
     return df
 
 
