@@ -18,20 +18,11 @@ fi
 dbt --version
 
 # Kiểm tra dbt project tồn tại
-
 echo "✓ Checking dbt project..."
 if [ ! -f "/app/dbt/dbt_project.yml" ]; then
     echo "❌ dbt_project.yml not found at /app/dbt/! Exiting..."
     exit 1
 fi
-
-# Kiểm tra GCP credentials
-echo "✓ Checking GCP Credentials..."
-if [ ! -f "/app/gcp_service_account.json" ]; then
-    echo "❌ GCP Service Account key not found at /app/gcp_service_account.json! Exiting..."
-    exit 1
-fi
-echo "✓ GCP Credentials found!"
 
 # Chạy dbt commands
 
@@ -73,3 +64,4 @@ dbt docs generate || true
 echo ""
 echo "✓ dbt finished successfully!"
 echo "============================================================================"
+
