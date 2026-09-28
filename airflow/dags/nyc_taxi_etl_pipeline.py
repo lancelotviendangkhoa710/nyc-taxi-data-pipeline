@@ -228,6 +228,18 @@ def nyc_taxi_etl_pipeline() -> None:
         mount_tmp_dir=False,
     )
 
+    dbt_seed = DockerOperator(
+        task_id="dbt_seed",
+        image=DBT_IMAGE,
+        entrypoint=["sh", "-c"],
+        command=["cd /app/dbt && dbt seed"],
+        environment=runtime_environment(),
+        mounts=project_mounts(include_dbt=True),
+        docker_url="unix://var/run/docker.sock",
+        auto_remove="success",
+        mount_tmp_dir=False,
+    )
+
     dbt_run = DockerOperator(
         task_id="dbt_run",
         image=DBT_IMAGE,
@@ -265,7 +277,7 @@ def nyc_taxi_etl_pipeline() -> None:
     )
 
     configuration_valid = validate_runtime_configuration()
-    configuration_valid >> run_spark_etl >> dbt_debug >> dbt_deps >> dbt_run >> dbt_test >> finalize_verified_batches
+    configuration_valid >> run_spark_etl >> dbt_debug >> dbt_deps >> dbt_seed >> dbt_run >> dbt_test >> finalize_verified_batches
 
 
 nyc_taxi_etl_pipeline()
