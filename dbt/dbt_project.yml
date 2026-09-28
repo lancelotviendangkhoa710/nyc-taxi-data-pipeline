@@ -28,10 +28,10 @@ seeds:
 models:
   nyc_taxi:
     staging:
-      +materialized: view
+      +materialized: table
       +schema: staging
     intermediate:
-      +materialized: view
+      +materialized: table
       +schema: intermediate
     marts:
       +materialized: table
