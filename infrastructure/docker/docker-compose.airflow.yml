@@ -16,6 +16,8 @@ x-airflow-common: &airflow-common
     AIRFLOW__CORE__LOAD_EXAMPLES: "false"
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
     AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "false"
+  group_add:
+    - "993"  # docker group GID on EC2 host — allows airflow user to access /var/run/docker.sock
   volumes:
     - ../../airflow/dags:/opt/airflow/dags
     - ../../airflow/logs:/opt/airflow/logs
