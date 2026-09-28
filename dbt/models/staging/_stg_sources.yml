@@ -2,8 +2,8 @@ version: 2
 
 sources:
   - name: warehouse
-    database: "{{ env_var('GCP_PROJECT_ID', 'nyc-taxi-data-pipeline-507015') }}"
-    schema: "{{ env_var('GCP_DATASET_RAW', 'nyc_taxi_raw') }}"
+    database: "{{ env_var('REDSHIFT_DB', 'dev') }}"
+    schema: public
     freshness:
       warn_after: {count: 35, period: day}
       error_after: {count: 60, period: day}
