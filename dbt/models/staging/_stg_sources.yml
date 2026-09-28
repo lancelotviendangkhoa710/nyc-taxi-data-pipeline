@@ -2,7 +2,6 @@ version: 2
 
 sources:
   - name: warehouse
-    database: "{{ env_var('REDSHIFT_DB', 'dev') }}"
     schema: public
     freshness:
       warn_after: {count: 35, period: day}
