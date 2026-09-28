@@ -24,10 +24,10 @@ select
     tip_amount,
     total_amount,
     case
-        when SAFE_DIVIDE(tip_amount, fare_amount) > 0.2 then 'High'
-        when SAFE_DIVIDE(tip_amount, fare_amount) > 0.1 then 'Medium'
+        when fare_amount > 0 and tip_amount / fare_amount > 0.2 then 'High'
+        when fare_amount > 0 and tip_amount / fare_amount > 0.1 then 'Medium'
         else 'Low'
     end as tip_category
 
 from enriched_trips
-where trip_date >= date_sub(current_date(), interval 12 month)
+where trip_date >= DATEADD(month, -12, CURRENT_DATE)
