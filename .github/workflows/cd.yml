@@ -32,9 +32,15 @@ jobs:
             # Đi vào thư mục project
             cd ~/nyc-taxi-de-project
             
-            # Discard thay đổi local (nếu có) và pull code mới
+            # EC2 là deployment host: repair Git ownership trước fetch.
+            # Không chạy Git bằng sudo để tránh root-owned files trong .git.
+            sudo chown -R ec2-user:ec2-user .git
+            sudo chmod -R u+rwX .git
+
+            # Discard local drift, untracked artifacts, then sync exact deploy commit.
             git fetch origin main
             git reset --hard ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || 'origin/main' }}
+            git clean -fd
             
             # Cấp quyền lại phòng hờ
             sudo setfacl -m user:50000:rw /var/run/docker.sock || true

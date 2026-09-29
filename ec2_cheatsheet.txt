@@ -10,8 +10,20 @@ ssh -i "D:\NYC_Taxi_Project\airflow-de-key.pem" ec2-user@3.1.224.141
 ## 2. Quản lý Code trên EC2
 # Đi vào thư mục project
 cd ~/nyc-taxi-de-project
-# Cập nhật code mới nhất từ GitHub
-git pull origin main
+# EC2 là deployment host; không dùng git pull hoặc sudo git.
+# Backup local drift nếu cần giữ để debug.
+backup_dir="$HOME/nyc-taxi-backup-$(date +%Y%m%d-%H%M%S)"
+mkdir -p "$backup_dir"
+git diff > "$backup_dir/local-changes.patch"
+git ls-files --others --exclude-standard > "$backup_dir/untracked-files.txt"
+
+# Sửa quyền .git, discard local drift, sync exact remote state.
+sudo chown -R ec2-user:ec2-user .git
+sudo chmod -R u+rwX .git
+git fetch origin main
+git reset --hard origin/main
+git clean -fd
+git status
 
 ## 3. Quản lý Airflow (bằng Docker Compose)
 # Nhớ: Phải đứng ở thư mục ~/nyc-taxi-de-project mới chạy được các lệnh này
