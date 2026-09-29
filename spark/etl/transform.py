@@ -38,8 +38,9 @@ def standardize_data_types(df: DataFrame) -> DataFrame:
     df = df.withColumn("trip_distance",         F.col("trip_distance").cast("double"))
     df = df.withColumn("fare_amount",           F.col("fare_amount").cast("double"))
     df = df.withColumn("tip_amount",            F.col("tip_amount").cast("double"))
-    df = df.withColumn("RatecodeID",            F.col("RatecodeID").cast("integer"))
-    df = df.withColumn("payment_type",          F.col("payment_type").cast("integer"))
+    for column in ("RatecodeID", "payment_type"):
+        if column in df.columns:
+            df = df.withColumn(column, F.col(column).cast("integer"))
     return df
 
 
