@@ -32,10 +32,11 @@ jobs:
             # Đi vào thư mục project
             cd ~/nyc-taxi-de-project
             
-            # EC2 là deployment host: repair Git ownership trước fetch.
+            # EC2 là deployment host: repair ownership before Git mutates
+            # tracked files. Docker bind mounts can leave root-owned dbt artifacts.
             # Không chạy Git bằng sudo để tránh root-owned files trong .git.
-            sudo chown -R ec2-user:ec2-user .git
-            sudo chmod -R u+rwX .git
+            sudo chown -R ec2-user:ec2-user .
+            sudo chmod -R u+rwX .
 
             # Discard local drift, untracked artifacts, then sync exact deploy commit.
             git fetch origin main

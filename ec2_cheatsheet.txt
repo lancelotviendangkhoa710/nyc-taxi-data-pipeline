@@ -17,9 +17,10 @@ mkdir -p "$backup_dir"
 git diff > "$backup_dir/local-changes.patch"
 git ls-files --others --exclude-standard > "$backup_dir/untracked-files.txt"
 
-# Sửa quyền .git, discard local drift, sync exact remote state.
-sudo chown -R ec2-user:ec2-user .git
-sudo chmod -R u+rwX .git
+# Sửa quyền working tree/.git, discard local drift, sync exact remote state.
+# Docker bind mount có thể tạo dbt/dbt_packages với owner root.
+sudo chown -R ec2-user:ec2-user .
+sudo chmod -R u+rwX .
 git fetch origin main
 git reset --hard origin/main
 git clean -fd
