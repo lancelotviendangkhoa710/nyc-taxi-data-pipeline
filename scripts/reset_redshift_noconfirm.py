@@ -11,6 +11,9 @@ from pathlib import Path
 ROOT_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT_DIR))
 
+from dotenv import load_dotenv
+load_dotenv(ROOT_DIR / ".env")
+
 import redshift_connector
 
 REDSHIFT_HOST = os.getenv("REDSHIFT_HOST", "redshift-cluster-1.xxxx.us-east-1.redshift.amazonaws.com")

@@ -7,9 +7,9 @@ with source as (
 ),
 
 all_locations as (
-    select COALESCE(PULocationID, 0) AS location_key from source
-    union all
-    select COALESCE(DOLocationID, 0) AS location_key from source
+    select distinct COALESCE(PULocationID, 0) AS location_key from source
+    union
+    select distinct COALESCE(DOLocationID, 0) AS location_key from source
 ),
 
 zone_lookup as (
@@ -21,7 +21,7 @@ zone_lookup as (
     from {{ ref('taxi_zone_lookup') }}
 )
 
-select
+select distinct
     l.location_key,
     COALESCE(z.zone,         'Unknown') as zone,
     COALESCE(z.borough,      'Unknown') as borough,
