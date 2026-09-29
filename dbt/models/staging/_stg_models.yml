@@ -28,7 +28,7 @@ models:
               max_value: 1000
 
       - name: trip_distance
-        description: "Trip distance in miles — filtered > 0 and <= 100"
+        description: "Trip distance in miles — filtered > 0 and < 100"
         tests:
           - not_null
           - dbt_utils.accepted_range:

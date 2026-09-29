@@ -11,7 +11,7 @@ cleaned as (
     where fare_amount between 2.5 and 1000
       and total_amount between 0 and 5000
       and trip_distance > 0
-      and trip_distance <= 100
+      and trip_distance < 100
       and tpep_pickup_datetime >= '2025-01-01'::timestamp
       and tpep_dropoff_datetime >= tpep_pickup_datetime
 ),
