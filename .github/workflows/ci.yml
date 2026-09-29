@@ -18,7 +18,7 @@ jobs:
           distribution: "temurin"
           java-version: "17"
       - run: pip install -e ".[dev]"
-      - run: python -m pytest -q
+      - run: python -m pytest -q tests
 
   lint:
     runs-on: ubuntu-latest

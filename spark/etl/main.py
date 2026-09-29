@@ -1,6 +1,6 @@
-from spark.etl.pipeline import YellowTaxiETLPipeline
-from spark.etl.metadata import ETLMetadata
 from spark.config import RAW_DIR, YELLOW_TAXI_PATTERN
+from spark.etl.metadata import ETLMetadata
+from spark.etl.pipeline import YellowTaxiETLPipeline
 from spark.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -12,6 +12,7 @@ def reconcile_processed_vs_dwh(metadata: ETLMetadata) -> None:
     Redshift logic pending.
     """
     pass
+
 
 def main() -> None:
     initial_metadata = ETLMetadata()
@@ -39,4 +40,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

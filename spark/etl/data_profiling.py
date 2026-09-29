@@ -3,15 +3,13 @@ from __future__ import annotations
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import Any
 
 import pandas as pd
-from pyspark.sql import DataFrame, SparkSession
 import pyspark.sql.functions as F
 import pyspark.sql.types as T
-
 from google.cloud import bigquery
 from google.oauth2 import service_account
+from pyspark.sql import DataFrame, SparkSession
 
 from spark.config import (
     GCP_DATASET_RAW,
@@ -37,11 +35,7 @@ def get_numeric_columns(df: DataFrame) -> list[str]:
         T.DoubleType,
         T.DecimalType,
     )
-    return [
-        field.name
-        for field in df.schema.fields
-        if isinstance(field.dataType, numeric_types)
-    ]
+    return [field.name for field in df.schema.fields if isinstance(field.dataType, numeric_types)]
 
 
 def profile_numeric_columns(df: DataFrame) -> DataFrame:
@@ -49,33 +43,39 @@ def profile_numeric_columns(df: DataFrame) -> DataFrame:
     if not numeric_cols:
         logger.warning("Can't find any numeric columns in the DataFrame.")
         spark = df.sparkSession
-        schema = T.StructType([
-            T.StructField("column_name", T.StringType(), True),
-            T.StructField("min_value", T.DoubleType(), True),
-            T.StructField("max_value", T.DoubleType(), True),
-            T.StructField("mean_value", T.DoubleType(), True),
-            T.StructField("median_value", T.DoubleType(), True),
-            T.StructField("mode_value", T.DoubleType(), True),
-            T.StructField("null_count", T.LongType(), True),
-            T.StructField("total_count", T.LongType(), True),
-            T.StructField("profiled_at", T.StringType(), True),
-        ])
+        schema = T.StructType(
+            [
+                T.StructField("column_name", T.StringType(), True),
+                T.StructField("min_value", T.DoubleType(), True),
+                T.StructField("max_value", T.DoubleType(), True),
+                T.StructField("mean_value", T.DoubleType(), True),
+                T.StructField("median_value", T.DoubleType(), True),
+                T.StructField("mode_value", T.DoubleType(), True),
+                T.StructField("null_count", T.LongType(), True),
+                T.StructField("total_count", T.LongType(), True),
+                T.StructField("profiled_at", T.StringType(), True),
+            ]
+        )
         return spark.createDataFrame([], schema)
 
-    logger.info("Starting data profiling for %d numeric columns: %s", len(numeric_cols), numeric_cols)
+    logger.info(
+        "Starting data profiling for %d numeric columns: %s", len(numeric_cols), numeric_cols
+    )
 
     agg_exprs = []
     for col in numeric_cols:
         col_ref = F.col(col)
-        agg_exprs.extend([
-            F.min(col_ref).cast("double").alias(f"{col}__min"),
-            F.max(col_ref).cast("double").alias(f"{col}__max"),
-            F.avg(col_ref).cast("double").alias(f"{col}__mean"),
-            F.percentile_approx(col_ref.cast("double"), 0.5).alias(f"{col}__median"),
-            F.mode(col_ref).cast("double").alias(f"{col}__mode"),
-            F.count(col_ref).alias(f"{col}__count"),
-            F.count(F.when(col_ref.isNull(), 1)).alias(f"{col}__null_count"),
-        ])
+        agg_exprs.extend(
+            [
+                F.min(col_ref).cast("double").alias(f"{col}__min"),
+                F.max(col_ref).cast("double").alias(f"{col}__max"),
+                F.avg(col_ref).cast("double").alias(f"{col}__mean"),
+                F.percentile_approx(col_ref.cast("double"), 0.5).alias(f"{col}__median"),
+                F.mode(col_ref).cast("double").alias(f"{col}__mode"),
+                F.count(col_ref).alias(f"{col}__count"),
+                F.count(F.when(col_ref.isNull(), 1)).alias(f"{col}__null_count"),
+            ]
+        )
 
     total_rows = df.count()
     summary_row = df.agg(*agg_exprs).collect()[0]
@@ -83,17 +83,19 @@ def profile_numeric_columns(df: DataFrame) -> DataFrame:
 
     profiling_data = []
     for col in numeric_cols:
-        profiling_data.append({
-            "column_name": col,
-            "min_value": summary_row[f"{col}__min"],
-            "max_value": summary_row[f"{col}__max"],
-            "mean_value": summary_row[f"{col}__mean"],
-            "median_value": summary_row[f"{col}__median"],
-            "mode_value": summary_row[f"{col}__mode"],
-            "null_count": summary_row[f"{col}__null_count"],
-            "total_count": total_rows,
-            "profiled_at": now_str,
-        })
+        profiling_data.append(
+            {
+                "column_name": col,
+                "min_value": summary_row[f"{col}__min"],
+                "max_value": summary_row[f"{col}__max"],
+                "mean_value": summary_row[f"{col}__mean"],
+                "median_value": summary_row[f"{col}__median"],
+                "mode_value": summary_row[f"{col}__mode"],
+                "null_count": summary_row[f"{col}__null_count"],
+                "total_count": total_rows,
+                "profiled_at": now_str,
+            }
+        )
 
     spark = df.sparkSession
     result_df = spark.createDataFrame(profiling_data)
@@ -175,4 +177,3 @@ if __name__ == "__main__":
         res.show(truncate=False)
     finally:
         spark_sess.stop()
-

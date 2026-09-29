@@ -19,11 +19,10 @@ Raw Parquet → Spark ETL → df_transformed (còn sống trong memory JVM)
 
 ```python
 def load_dim_time(self, df_processed: DataFrame) -> None:
-    pickup  = df_processed.select(F.col("tpep_pickup_datetime").alias("ts"))
+    pickup = df_processed.select(F.col("tpep_pickup_datetime").alias("ts"))
     dropoff = df_processed.select(F.col("tpep_dropoff_datetime").alias("ts"))
     df_time = pickup.union(dropoff).distinct()
-    df_time = df_time.withColumn("time_key",
-        F.date_format("ts", "yyyyMMddHH").cast("long"))
+    df_time = df_time.withColumn("time_key", F.date_format("ts", "yyyyMMddHH").cast("long"))
     self._write_to_postgres(df_time, "dim_time")
 ```
 
@@ -74,10 +73,10 @@ Trộn lẫn vi phạm single responsibility và làm cả 2 khó test độc l�
 
 ```python
 def load_all(self):
-    self._load_parquet_files(...)           # yellow_taxi_raw ✓
-    self._load_rows(DIM_VENDOR_DATA,  ...)  # static ✓
+    self._load_parquet_files(...)  # yellow_taxi_raw ✓
+    self._load_rows(DIM_VENDOR_DATA, ...)  # static ✓
     self._load_rows(DIM_PAYMENT_DATA, ...)  # static ✓
-    self._load_rows(DIM_RATE_DATA,    ...)  # static ✓
+    self._load_rows(DIM_RATE_DATA, ...)  # static ✓
     # dim_time ← KHÔNG CÓ — technical debt từ migration
 ```
 

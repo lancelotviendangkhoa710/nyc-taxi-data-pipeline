@@ -14,6 +14,7 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT_DIR))
 
 from spark.etl.load_bigquery import BigQueryLoader
+
 from spark.utils.logger import get_logger
 
 logger = get_logger(__name__)

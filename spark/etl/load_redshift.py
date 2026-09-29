@@ -2,26 +2,27 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Sequence
 
 import boto3
 import redshift_connector
-from spark.config import PROCESSED_DIR, ROOT_DIR
+
 from spark.utils.logger import get_logger
 
 logger = get_logger("spark.etl.load_redshift")
 
 AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
 S3_BUCKET = os.getenv("S3_BUCKET", "nyc-taxi-data-lake")
-REDSHIFT_HOST = os.getenv("REDSHIFT_HOST", "redshift-cluster-1.xxxx.us-east-1.redshift.amazonaws.com")
+REDSHIFT_HOST = os.getenv(
+    "REDSHIFT_HOST", "redshift-cluster-1.xxxx.us-east-1.redshift.amazonaws.com"
+)
 REDSHIFT_PORT = int(os.getenv("REDSHIFT_PORT", "5439"))
 REDSHIFT_DB = os.getenv("REDSHIFT_DB", "dev")
 REDSHIFT_USER = os.getenv("REDSHIFT_USER", "awsuser")
 REDSHIFT_PASSWORD = os.getenv("REDSHIFT_PASSWORD", "Password123")
 IAM_ROLE = os.getenv("REDSHIFT_IAM_ROLE", "arn:aws:iam::123456789012:role/RedshiftS3Access")
 
-class RedshiftLoader:
 
+class RedshiftLoader:
     def __init__(self) -> None:
         self.s3_client = boto3.client("s3", region_name=AWS_REGION)
         self.bucket = S3_BUCKET
@@ -30,12 +31,12 @@ class RedshiftLoader:
             port=REDSHIFT_PORT,
             database=REDSHIFT_DB,
             user=REDSHIFT_USER,
-            password=REDSHIFT_PASSWORD
+            password=REDSHIFT_PASSWORD,
         )
         logger.info("RedshiftLoader initialized.")
 
-    def _upload_to_s3(self, fpath: Path) -> str:
-        s3_key = f"raw/yellow_taxi/{fpath.name}"
+    def _upload_to_s3(self, fpath: Path, source_month: str) -> str:
+        s3_key = f"silver/yellow_taxi/source_month={source_month}/{fpath.name}"
         self.s3_client.upload_file(str(fpath), self.bucket, s3_key)
         logger.info("Uploaded %s to s3://%s/%s", fpath.name, self.bucket, s3_key)
         return f"s3://{self.bucket}/{s3_key}"
@@ -76,17 +77,17 @@ class RedshiftLoader:
         parquet_files = sorted(parquet_dir.rglob("*.parquet"))
         if not parquet_files:
             raise FileNotFoundError(f"Can not find any processed batch in: {parquet_dir}")
-        
+
         # S3 upload
         s3_paths = []
         for f in parquet_files:
-            s3_paths.append(self._upload_to_s3(f))
-            
+            s3_paths.append(self._upload_to_s3(f, source_month))
+
         logger.info("load_batch source_month=%s -> Redshift COPY", source_month)
-        
+
         # Redshift logic: Delete old data for this month (idempotent), then copy
         self._execute_query(f"DELETE FROM yellow_taxi_raw WHERE source_month = '{source_month}';")
-        
+
         for s3_uri in s3_paths:
             copy_sql = f"""
                 COPY yellow_taxi_raw
@@ -95,6 +96,5 @@ class RedshiftLoader:
                 FORMAT AS PARQUET;
             """
             self._execute_query(copy_sql)
-            
-        logger.info("load_batch completed -- run dbt to refresh dim/fact.")
 
+        logger.info("load_batch completed -- run dbt to refresh dim/fact.")

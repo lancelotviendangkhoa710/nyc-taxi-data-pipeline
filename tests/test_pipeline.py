@@ -19,30 +19,25 @@ def spark() -> SparkSession:
     session.stop()
 
 
-def test_t1_transforms_standardize_fill_deduplicate_and_add_pickup_date(spark: SparkSession) -> None:
-    columns = [
-        "VendorID",
-        "tpep_pickup_datetime",
-        "tpep_dropoff_datetime",
-        "passenger_count",
-        "trip_distance",
-        "fare_amount",
-        "tip_amount",
-    ]
+def test_t1_transforms_standardize_fill_deduplicate_and_add_pickup_date(
+    spark: SparkSession,
+) -> None:
     rows = [
         (1, "2026-01-01 10:00:00", "2026-01-01 10:10:00", None, "5.0", "10.0", None),
         (1, "2026-01-01 10:00:00", "2026-01-01 10:10:00", None, "5.0", "10.0", None),
     ]
 
-    schema = T.StructType([
-        T.StructField("VendorID", T.IntegerType(), True),
-        T.StructField("tpep_pickup_datetime", T.StringType(), True),
-        T.StructField("tpep_dropoff_datetime", T.StringType(), True),
-        T.StructField("passenger_count", T.IntegerType(), True),
-        T.StructField("trip_distance", T.StringType(), True),
-        T.StructField("fare_amount", T.StringType(), True),
-        T.StructField("tip_amount", T.DoubleType(), True),
-    ])
+    schema = T.StructType(
+        [
+            T.StructField("VendorID", T.IntegerType(), True),
+            T.StructField("tpep_pickup_datetime", T.StringType(), True),
+            T.StructField("tpep_dropoff_datetime", T.StringType(), True),
+            T.StructField("passenger_count", T.IntegerType(), True),
+            T.StructField("trip_distance", T.StringType(), True),
+            T.StructField("fare_amount", T.StringType(), True),
+            T.StructField("tip_amount", T.DoubleType(), True),
+        ]
+    )
     transformed = standardize_data_types(spark.createDataFrame(rows, schema))
     transformed = handle_null_values(transformed)
     transformed = remove_duplicates(transformed)

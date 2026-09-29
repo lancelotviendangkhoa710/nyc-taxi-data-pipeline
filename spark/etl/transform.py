@@ -1,6 +1,7 @@
-from pyspark.sql import DataFrame
 import pyspark.sql.functions as F
+from pyspark.sql import DataFrame
 from pyspark.sql.types import TimestampType
+
 from spark.utils.logger import get_logger
 
 logger = get_logger("spark.etl.transform")
@@ -32,12 +33,14 @@ def standardize_data_types(df: DataFrame) -> DataFrame:
     logger.info("Standardizing column data types...")
     # PySpark 3.5 TimestampType writes microsecond parquet (timestamp_us).
     # Redshift COPY FORMAT AS PARQUET rejects nanosecond timestamps.
-    df = df.withColumn("tpep_pickup_datetime",  F.col("tpep_pickup_datetime").cast(TimestampType()))
-    df = df.withColumn("tpep_dropoff_datetime", F.col("tpep_dropoff_datetime").cast(TimestampType()))
-    df = df.withColumn("passenger_count",       F.col("passenger_count").cast("integer"))
-    df = df.withColumn("trip_distance",         F.col("trip_distance").cast("double"))
-    df = df.withColumn("fare_amount",           F.col("fare_amount").cast("double"))
-    df = df.withColumn("tip_amount",            F.col("tip_amount").cast("double"))
+    df = df.withColumn("tpep_pickup_datetime", F.col("tpep_pickup_datetime").cast(TimestampType()))
+    df = df.withColumn(
+        "tpep_dropoff_datetime", F.col("tpep_dropoff_datetime").cast(TimestampType())
+    )
+    df = df.withColumn("passenger_count", F.col("passenger_count").cast("integer"))
+    df = df.withColumn("trip_distance", F.col("trip_distance").cast("double"))
+    df = df.withColumn("fare_amount", F.col("fare_amount").cast("double"))
+    df = df.withColumn("tip_amount", F.col("tip_amount").cast("double"))
     for column in ("RatecodeID", "payment_type"):
         if column in df.columns:
             df = df.withColumn(column, F.col(column).cast("integer"))
@@ -47,4 +50,3 @@ def standardize_data_types(df: DataFrame) -> DataFrame:
 def add_pickup_date(df: DataFrame) -> DataFrame:
     logger.info("Adding pickup_date column for partitioning...")
     return df.withColumn("pickup_date", F.to_date("tpep_pickup_datetime"))
-

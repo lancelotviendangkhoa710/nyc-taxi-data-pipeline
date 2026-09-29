@@ -10,38 +10,48 @@ models:
           - unique
           - not_null
 
+      - name: source_month
+        description: "Source batch month in YYYY-MM format; incremental replacement key"
+        tests:
+          - not_null
+
       - name: vendor_key
         description: "Vendor surrogate key (1=Creative Mobile, 2=Curb Mobility, 7=Unknown)"
         tests:
           - not_null
           - accepted_values:
-              values: [1, 2, 7]
-              quote: false
-              severity: warn
+              arguments:
+                values: [1, 2, 7]
+                quote: false
+              config:
+                severity: warn
 
       - name: fare_amount
         description: "Fare amount in USD — filtered >= 2.5 and <= 1000"
         tests:
           - not_null
           - dbt_utils.accepted_range:
-              min_value: 2.5
-              max_value: 1000
+              arguments:
+                min_value: 2.5
+                max_value: 1000
 
       - name: trip_distance
         description: "Trip distance in miles — filtered > 0 and < 100"
         tests:
           - not_null
           - dbt_utils.accepted_range:
-              min_value: 0
-              max_value: 100
-              inclusive: false
+              arguments:
+                min_value: 0
+                max_value: 100
+                inclusive: false
 
       - name: trip_duration_min
         description: "Trip duration in minutes derived from dropoff - pickup"
         tests:
           - not_null
           - dbt_utils.expression_is_true:
-              expression: ">= 0"
+              arguments:
+                expression: ">= 0"
 
       - name: tip_ratio
         description: "tip_amount / fare_amount — 0.0 when fare_amount = 0"
@@ -53,7 +63,8 @@ models:
         tests:
           - not_null
           - dbt_utils.expression_is_true:
-              expression: ">= '2025-01-01'"
+              arguments:
+                expression: ">= '2025-01-01'"
 
       - name: passenger_count
         description: "Number of passengers"
@@ -65,8 +76,9 @@ models:
         tests:
           - not_null
           - dbt_utils.accepted_range:
-              min_value: 0
-              max_value: 5000
+              arguments:
+                min_value: 0
+                max_value: 5000
 
       - name: pickup_location_key
         description: "Pickup location ID (TLC LocationID)"
@@ -126,8 +138,9 @@ models:
         tests:
           - not_null
           - dbt_utils.accepted_range:
-              min_value: 0
-              max_value: 23
+              arguments:
+                min_value: 0
+                max_value: 23
 
   - name: stg_payment
     description: "Static payment type dimension"

@@ -4,7 +4,9 @@ from pathlib import Path
 from spark.etl.metadata import ETLMetadata
 
 
-def test_get_latest_unprocessed_prioritizes_processed_batch_for_bigquery_retry(tmp_path: Path) -> None:
+def test_get_latest_unprocessed_prioritizes_processed_batch_for_dwh_retry(
+    tmp_path: Path,
+) -> None:
     raw_dir = tmp_path / "raw"
     raw_dir.mkdir()
     processed_file = raw_dir / "yellow_tripdata_2026-01.parquet"
@@ -15,10 +17,10 @@ def test_get_latest_unprocessed_prioritizes_processed_batch_for_bigquery_retry(t
     metadata = ETLMetadata(tmp_path / "metadata" / "etl_metadata.json")
     metadata.mark_processed(processed_file.name, processed_file.stat().st_size)
 
-    # processed = local Parquet đã ghi, pipeline coi là "có thể retry BQ"
+    # processed = local Parquet đã ghi, pipeline coi là "có thể retry DWH"
     assert metadata.is_completed(processed_file.name) is False
     assert metadata.status(processed_file.name) == "processed"
-    # A processed batch is retried in BigQuery before newer unprocessed source files.
+    # A processed batch is retried in the DWH before newer unprocessed source files.
     assert metadata.get_latest_unprocessed(raw_dir, "yellow_tripdata_*.parquet") == processed_file
 
 
@@ -32,12 +34,20 @@ def test_processed_record_persists_and_prevents_reprocessing(tmp_path: Path) -> 
     ETLMetadata(metadata_path).mark_processed(source_file.name, source_file.stat().st_size)
     reloaded_metadata = ETLMetadata(metadata_path)
 
-    assert json.loads(metadata_path.read_text(encoding="utf-8"))[source_file.name]["status"] == "processed"
-    # status=processed → pipeline sẽ retry step BQ; get_latest_unprocessed trả về file này
-    assert reloaded_metadata.get_latest_unprocessed(raw_dir, "yellow_tripdata_*.parquet") == source_file
+    assert (
+        json.loads(metadata_path.read_text(encoding="utf-8"))[source_file.name]["status"]
+        == "processed"
+    )
+    # status=processed → pipeline sẽ retry step DWH; get_latest_unprocessed trả về file này
+    assert (
+        reloaded_metadata.get_latest_unprocessed(raw_dir, "yellow_tripdata_*.parquet")
+        == source_file
+    )
 
 
-def test_cleanup_deletes_only_dbt_verified_batch_and_keeps_manifest(tmp_path: Path, monkeypatch) -> None:
+def test_cleanup_deletes_only_dbt_verified_batch_and_keeps_manifest(
+    tmp_path: Path, monkeypatch
+) -> None:
     import spark.etl.metadata as metadata_module
 
     raw_dir = tmp_path / "raw"
@@ -54,10 +64,36 @@ def test_cleanup_deletes_only_dbt_verified_batch_and_keeps_manifest(tmp_path: Pa
 
     metadata = ETLMetadata(metadata_path)
     metadata.mark_processed(filename, 3)
-    metadata.mark_bq_loaded(filename)
+    metadata.mark_dwh_loaded(filename)
     metadata.mark_dbt_tested(filename)
 
     assert metadata.complete_and_cleanup(retention_days=0) == [filename]
     assert not (raw_dir / filename).exists()
     assert not batch_dir.exists()
     assert ETLMetadata(metadata_path).status(filename) == "completed"
+
+
+def test_load_migrates_legacy_bigquery_status_to_dwh_status(tmp_path: Path) -> None:
+    metadata_path = tmp_path / "metadata" / "etl_metadata.json"
+    metadata_path.parent.mkdir()
+    filename = "yellow_tripdata_2026-01.parquet"
+    metadata_path.write_text(
+        json.dumps(
+            {
+                filename: {
+                    "filename": filename,
+                    "source_month": "2026-01",
+                    "status": "bq_loaded",
+                    "bq_loaded_at": "2026-01-02T03:04:05",
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    metadata = ETLMetadata(metadata_path)
+
+    assert metadata.status(filename) == "dwh_loaded"
+    record = json.loads(metadata_path.read_text(encoding="utf-8"))[filename]
+    assert record["dwh_loaded_at"] == "2026-01-02T03:04:05"
+    assert "bq_loaded_at" not in record

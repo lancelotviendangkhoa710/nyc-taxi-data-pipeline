@@ -3,9 +3,10 @@
 # để tối ưu BQ upload (1 file/batch thay vì N files/ngày).
 # Test này được thay bằng kiểm tra load_data sử dụng đúng output path.
 
-from spark.etl.load import get_raw_batch_size_bytes, get_configured_batch_size_bytes
-from pathlib import Path
 import os
+from pathlib import Path
+
+from spark.etl.load import get_configured_batch_size_bytes, get_raw_batch_size_bytes
 
 
 def test_get_configured_batch_size_bytes_uses_env_when_set(monkeypatch):
@@ -33,4 +34,3 @@ def test_get_raw_batch_size_bytes_counts_files(tmp_path):
     f2.write_bytes(b"x" * 200)
     result = get_raw_batch_size_bytes(raw_dir=tmp_path, pattern="yellow_tripdata_*.parquet")
     assert result == 300
-

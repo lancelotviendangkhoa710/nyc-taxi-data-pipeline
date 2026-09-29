@@ -10,17 +10,20 @@ Duoc goi boi nyc_taxi_full_reload DAG (task: reset_local_data).
 
 import json
 import shutil
-import sys
 from pathlib import Path
 
 # /app/data tuong ung voi d:/NYC_Taxi_Project/data tren host
-DATA_DIR      = Path("/app/data")
+DATA_DIR = Path("/app/data")
 PROCESSED_DIR = DATA_DIR / "processed"
 METADATA_FILE = DATA_DIR / "metadata" / "etl_metadata.json"
 
 STALE_FIELDS = (
-    "processed_at", "bq_loaded_at", "dbt_tested_at",
-    "cleaned_at", "error", "failed_at",
+    "processed_at",
+    "dwh_loaded_at",
+    "dbt_tested_at",
+    "cleaned_at",
+    "error",
+    "failed_at",
 )
 
 
@@ -51,10 +54,10 @@ def reset_metadata() -> None:
 
 
 def main() -> None:
-    print(f"\n{'='*55}")
+    print(f"\n{'=' * 55}")
     print("  LOCAL DATA RESET")
     print(f"  data dir : {DATA_DIR}")
-    print(f"{'='*55}\n")
+    print(f"{'=' * 55}\n")
 
     reset_processed()
     reset_metadata()

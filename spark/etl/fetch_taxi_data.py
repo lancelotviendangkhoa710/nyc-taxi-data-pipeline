@@ -1,17 +1,21 @@
 import os
-import requests
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
+
+import requests
+
 from spark.config import RAW_DIR
 from spark.etl.metadata import ETLMetadata
 from spark.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-DATA_START_DATE = "2025-06"  
+DATA_START_DATE = "2025-06"
+
 
 def _current_month() -> str:
     return datetime.now().strftime("%Y-%m")
+
 
 def _check_needs_download(url: str, filepath) -> bool:
     try:
@@ -30,7 +34,9 @@ def _check_needs_download(url: str, filepath) -> bool:
     if content_length is not None:
         remote_size = int(content_length)
         if remote_size != local_size:
-            logger.info("Size mismatch (local=%d, remote=%d) -> update required.", local_size, remote_size)
+            logger.info(
+                "Size mismatch (local=%d, remote=%d) -> update required.", local_size, remote_size
+            )
             return True
 
     last_modified = response.headers.get("Last-Modified")
@@ -38,13 +44,20 @@ def _check_needs_download(url: str, filepath) -> bool:
         try:
             remote_ts = parsedate_to_datetime(last_modified).timestamp()
             if remote_ts > local_mtime:
-                local_dt = datetime.fromtimestamp(local_mtime, tz=timezone.utc).strftime("%a, %d %b %Y %H:%M:%S GMT")
-                logger.info("Server is newer (remote=%s, local=%s) -> update required.", last_modified, local_dt)
+                local_dt = datetime.fromtimestamp(local_mtime, tz=UTC).strftime(
+                    "%a, %d %b %Y %H:%M:%S GMT"
+                )
+                logger.info(
+                    "Server is newer (remote=%s, local=%s) -> update required.",
+                    last_modified,
+                    local_dt,
+                )
                 return True
         except Exception as e:
             logger.warning("Could not parse Last-Modified '%s': %s", last_modified, e)
 
     return False
+
 
 def _download_file(url: str, filepath) -> bool:
     logger.info("Downloading: %s", url)
@@ -62,6 +75,7 @@ def _download_file(url: str, filepath) -> bool:
         logger.error("Error: %s - %s", response.status_code, url)
         return False
 
+
 def fetch_data(start_date: str = DATA_START_DATE, end_date: str = None) -> None:
     if end_date is None:
         end_date = _current_month()
@@ -76,7 +90,9 @@ def fetch_data(start_date: str = DATA_START_DATE, end_date: str = None) -> None:
     if requested_start < limit_start:
         logger.warning(
             "start_date %s is earlier than threshold %s, adjusting to %s.",
-            start_date, DATA_START_DATE, DATA_START_DATE,
+            start_date,
+            DATA_START_DATE,
+            DATA_START_DATE,
         )
         start_date = DATA_START_DATE
 
@@ -125,6 +141,7 @@ def fetch_data(start_date: str = DATA_START_DATE, end_date: str = None) -> None:
             current = current.replace(year=current.year + 1, month=1)
         else:
             current = current.replace(month=current.month + 1)
+
 
 if __name__ == "__main__":
     fetch_data()

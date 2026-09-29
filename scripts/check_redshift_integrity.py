@@ -17,20 +17,23 @@ from __future__ import annotations
 import json
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT_DIR))
 
 import redshift_connector
+
 from spark.etl.fetch_taxi_data import DATA_START_DATE
 from spark.etl.metadata import ETLMetadata
 from spark.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-REDSHIFT_HOST = os.getenv("REDSHIFT_HOST", "redshift-cluster-1.xxxx.us-east-1.redshift.amazonaws.com")
+REDSHIFT_HOST = os.getenv(
+    "REDSHIFT_HOST", "redshift-cluster-1.xxxx.us-east-1.redshift.amazonaws.com"
+)
 REDSHIFT_PORT = int(os.getenv("REDSHIFT_PORT", "5439"))
 REDSHIFT_DB = os.getenv("REDSHIFT_DB", "dev")
 REDSHIFT_USER = os.getenv("REDSHIFT_USER", "awsuser")
@@ -45,14 +48,14 @@ def _redshift_conn() -> redshift_connector.Connection:
         port=REDSHIFT_PORT,
         database=REDSHIFT_DB,
         user=REDSHIFT_USER,
-        password=REDSHIFT_PASSWORD
+        password=REDSHIFT_PASSWORD,
     )
 
 
 def _expected_months() -> list[str]:
     start = datetime.strptime(DATA_START_DATE, "%Y-%m")
-    now   = datetime.now()
-    end   = datetime(now.year, now.month - 1, 1) if now.month > 1 else datetime(now.year - 1, 12, 1)
+    now = datetime.now()
+    end = datetime(now.year, now.month - 1, 1) if now.month > 1 else datetime(now.year - 1, 12, 1)
     months, cur = [], start
     while cur <= end:
         months.append(cur.strftime("%Y-%m"))
@@ -82,14 +85,21 @@ def _fix_metadata_from_redshift(redshift_months: dict[str, int]) -> None:
         if row_count == 0:
             continue
         filename = f"yellow_tripdata_{month}.parquet"
-        if metadata.status(filename) not in ("bq_loaded", "dwh_loaded", "dbt_tested", "completed"):
-            logger.info("[FIX] %s Redshift rows=%d nhung status=%s -> set bq_loaded (alias for dwh)",
-                        filename, row_count, metadata.status(filename))
+        if metadata.status(filename) not in ("dwh_loaded", "dbt_tested", "completed"):
+            logger.info(
+                "[FIX] %s Redshift rows=%d nhung status=%s -> set dwh_loaded",
+                filename,
+                row_count,
+                metadata.status(filename),
+            )
             record = metadata._record(filename)
-            # Giu nguyen key 'bq_loaded' hoac mark thong qua logic hien tai (project dang dung mark_bq_loaded alias)
-            record.update({"status": "bq_loaded",
-                           "bq_loaded_at": datetime.now().isoformat(timespec="seconds"),
-                           "note": "auto-fixed by integrity check"})
+            record.update(
+                {
+                    "status": "dwh_loaded",
+                    "dwh_loaded_at": datetime.now().isoformat(timespec="seconds"),
+                    "note": "auto-fixed by integrity check",
+                }
+            )
             changed = True
     if changed:
         metadata._save()
@@ -102,7 +112,7 @@ def main() -> None:
     except Exception as e:
         logger.error("Khong the ket noi Redshift: %s", e)
         sys.exit(1)
-        
+
     expected_months = _expected_months()
     redshift_months = _query_redshift_months(conn)
     conn.close()
@@ -111,24 +121,28 @@ def main() -> None:
     logger.info("Redshift has (%d): %s", len(redshift_months), list(redshift_months.keys()))
 
     missing_months = [m for m in expected_months if m not in redshift_months]
-    empty_months   = [m for m in expected_months if redshift_months.get(m, -1) == 0]
-    repair_needed  = sorted(set(missing_months + empty_months))
+    empty_months = [m for m in expected_months if redshift_months.get(m, -1) == 0]
+    repair_needed = sorted(set(missing_months + empty_months))
 
-    for m in missing_months: logger.warning("[MISSING] %s khong co trong Redshift", m)
-    for m in empty_months:   logger.warning("[EMPTY]   %s co rows=0 (lung lo)", m)
-    if not repair_needed:    logger.info("[OK] Tat ca %d thang co du lieu day du.", len(expected_months))
-    else:                    logger.warning("[ACTION] Can repair %d thang: %s", len(repair_needed), repair_needed)
+    for m in missing_months:
+        logger.warning("[MISSING] %s khong co trong Redshift", m)
+    for m in empty_months:
+        logger.warning("[EMPTY]   %s co rows=0 (lung lo)", m)
+    if not repair_needed:
+        logger.info("[OK] Tat ca %d thang co du lieu day du.", len(expected_months))
+    else:
+        logger.warning("[ACTION] Can repair %d thang: %s", len(repair_needed), repair_needed)
 
     _fix_metadata_from_redshift(redshift_months)
 
     report = {
-        "checked_at":      datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "checked_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "expected_months": expected_months,
-        "dwh_months":      redshift_months,
-        "missing_months":  missing_months,
-        "empty_months":    empty_months,
-        "repair_needed":   repair_needed,
-        "ok":              len(repair_needed) == 0,
+        "dwh_months": redshift_months,
+        "missing_months": missing_months,
+        "empty_months": empty_months,
+        "repair_needed": repair_needed,
+        "ok": len(repair_needed) == 0,
     }
     REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
     REPORT_PATH.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")

@@ -1,4 +1,5 @@
 import sys
+
 from dbt.cli.main import dbtRunner, dbtRunnerResult
 
 runner = dbtRunner()

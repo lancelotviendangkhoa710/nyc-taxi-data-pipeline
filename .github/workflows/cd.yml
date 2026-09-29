@@ -1,18 +1,20 @@
 name: CD - Deploy to EC2
 
 on:
-  push:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches:
       - main
-  workflow_dispatch: # Cho phép trigger thủ công trên GitHub UI
+  workflow_dispatch:
 
 jobs:
   deploy:
     name: Deploy to EC2
     runs-on: ubuntu-latest
-    
-    # Chỉ chạy CD nếu CI (lint, dbt-parse) đã pass. Chỉnh theo tên job trong ci.yml của bạn
-    # needs: [lint, dbt-parse]
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
 
     steps:
       - name: Checkout Code
@@ -32,7 +34,7 @@ jobs:
             
             # Discard thay đổi local (nếu có) và pull code mới
             git fetch origin main
-            git reset --hard origin/main
+            git reset --hard ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || 'origin/main' }}
             
             # Cấp quyền lại phòng hờ
             sudo setfacl -m user:50000:rw /var/run/docker.sock || true

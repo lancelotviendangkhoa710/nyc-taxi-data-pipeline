@@ -3,10 +3,11 @@ version: 2
 sources:
   - name: warehouse
     schema: public
-    freshness:
-      warn_after: {count: 35, period: day}
-      error_after: {count: 60, period: day}
-    loaded_at_field: pickup_date
+    config:
+      loaded_at_field: pickup_date
+      freshness:
+        warn_after: {count: 35, period: day}
+        error_after: {count: 60, period: day}
     tables:
       - name: yellow_taxi_raw
         description: "Raw NYC Yellow Taxi trips loaded by Spark ETL (T1: clean & standardize only)"

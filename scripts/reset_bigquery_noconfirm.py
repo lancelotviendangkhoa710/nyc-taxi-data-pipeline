@@ -1,5 +1,3 @@
-
-
 import os
 import sys
 from pathlib import Path
@@ -10,17 +8,17 @@ sys.path.insert(0, str(ROOT_DIR))
 from google.cloud import bigquery
 from google.oauth2 import service_account
 
-GCP_PROJECT_ID  = os.getenv("GCP_PROJECT_ID",  "nyc-taxi-data-pipeline-507015")
-GCP_DATASET_RAW = os.getenv("GCP_DATASET_RAW",  "nyc_taxi_raw")
-GCP_KEYFILE     = os.getenv("GCP_KEYFILE_PATH", str(ROOT_DIR / "gcp_service_account.json"))
+GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID", "nyc-taxi-data-pipeline-507015")
+GCP_DATASET_RAW = os.getenv("GCP_DATASET_RAW", "nyc_taxi_raw")
+GCP_KEYFILE = os.getenv("GCP_KEYFILE_PATH", str(ROOT_DIR / "gcp_service_account.json"))
 
 
 def reset_bigquery() -> None:
-    print(f"\n{'='*60}")
-    print(f"  BQ FULL RESET (non-interactive)")
+    print(f"\n{'=' * 60}")
+    print("  BQ FULL RESET (non-interactive)")
     print(f"  project : {GCP_PROJECT_ID}")
     print(f"  dataset : {GCP_DATASET_RAW}")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
     if not os.path.exists(GCP_KEYFILE):
         print(f"[ERROR] Keyfile not found: {GCP_KEYFILE}")

@@ -1,17 +1,15 @@
-
-
-import sys
 import os
+import sys
 
 # Đảm bảo có thể import config dù chạy từ bất kỳ đâu
 sys.path.insert(0, str(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
 
 from spark.config import (
-    setup_java_env,
     SPARK_APP_NAME,
-    SPARK_MASTER,
-    SPARK_LOG_LEVEL,
     SPARK_CONFIGS,
+    SPARK_LOG_LEVEL,
+    SPARK_MASTER,
+    setup_java_env,
 )
 from spark.utils.logger import get_logger
 
@@ -39,11 +37,7 @@ def get_spark(app_name: str = SPARK_APP_NAME):
 
     logger.info(f"Initializing SparkSession: app_name='{app_name}', master='{SPARK_MASTER}'")
 
-    builder = (
-        SparkSession.builder
-        .appName(app_name)
-        .master(SPARK_MASTER)
-    )
+    builder = SparkSession.builder.appName(app_name).master(SPARK_MASTER)
 
     # Áp dụng các cấu hình từ config.py
     for key, value in SPARK_CONFIGS.items():

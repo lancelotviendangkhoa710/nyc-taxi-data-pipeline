@@ -5,13 +5,13 @@ from pathlib import Path
 from pyspark.sql import DataFrame
 
 from spark.config import (
+    MAX_WRITE_PARTITIONS,
+    MIN_WRITE_PARTITIONS,
     PROCESSED_DIR,
     RAW_DIR,
     SELECTED_COLUMNS,
-    YELLOW_TAXI_PATTERN,
     TARGET_FILE_SIZE_BYTES,
-    MIN_WRITE_PARTITIONS,
-    MAX_WRITE_PARTITIONS,
+    YELLOW_TAXI_PATTERN,
 )
 from spark.utils.logger import get_logger
 
@@ -35,7 +35,7 @@ def load_data(
     output_path: str | None = None,
     input_size_bytes: int | None = None,
 ) -> None:
-   
+
     if output_path is None:
         output_path = str(PROCESSED_DIR / "yellow_taxi")
 
@@ -46,7 +46,9 @@ def load_data(
         logger.error("Unable to select configured columns: %s", error)
         raise
 
-    input_size_bytes = input_size_bytes if input_size_bytes is not None else get_configured_batch_size_bytes()
+    input_size_bytes = (
+        input_size_bytes if input_size_bytes is not None else get_configured_batch_size_bytes()
+    )
 
     num_partitions = max(
         MIN_WRITE_PARTITIONS,
@@ -69,14 +71,8 @@ def load_data(
         else:
             df_writer = df_selected.repartition(num_partitions)
 
-        (
-            df_writer
-            .write.mode("overwrite")
-            .parquet(output_path)
-        )
+        (df_writer.write.mode("overwrite").parquet(output_path))
         logger.info("Data written successfully to: %s", output_path)
     except Exception as error:
         logger.error("Unable to write Parquet output: %s", error)
         raise
-
-

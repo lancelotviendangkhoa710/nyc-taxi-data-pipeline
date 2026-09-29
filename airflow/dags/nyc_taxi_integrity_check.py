@@ -1,29 +1,42 @@
 from __future__ import annotations
-import json, os
+
+import json
+import os
 from datetime import datetime, timedelta
 from pathlib import Path
+
 from airflow.decorators import dag, task
 from airflow.exceptions import AirflowSkipException
 from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 from airflow.providers.docker.operators.docker import DockerOperator
 from docker.types import Mount
 
-DAG_ID                = "nyc_taxi_integrity_check"
-SPARK_IMAGE           = "docker-spark-etl:latest"
+DAG_ID = "nyc_taxi_integrity_check"
+SPARK_IMAGE = "docker-spark-etl:latest"
 CONTAINER_PROJECT_DIR = "/app"
-START_DATE            = datetime(2025, 1, 1)
-PROJECT_ROOT          = os.getenv("NYC_TAXI_PROJECT_ROOT", "")
+START_DATE = datetime(2025, 1, 1)
+PROJECT_ROOT = os.getenv("NYC_TAXI_PROJECT_ROOT", "")
 
 
-def project_path(*parts): return str(Path(PROJECT_ROOT, *parts))
+def project_path(*parts):
+    return str(Path(PROJECT_ROOT, *parts))
 
 
 def project_mounts():
     return [
-        Mount(source=project_path("data"),    target=f"{CONTAINER_PROJECT_DIR}/data",    type="bind"),
-        Mount(source=project_path("spark"),   target=f"{CONTAINER_PROJECT_DIR}/spark",   type="bind", read_only=True),
-        Mount(source=project_path("scripts"), target=f"{CONTAINER_PROJECT_DIR}/scripts", type="bind", read_only=True),
-        
+        Mount(source=project_path("data"), target=f"{CONTAINER_PROJECT_DIR}/data", type="bind"),
+        Mount(
+            source=project_path("spark"),
+            target=f"{CONTAINER_PROJECT_DIR}/spark",
+            type="bind",
+            read_only=True,
+        ),
+        Mount(
+            source=project_path("scripts"),
+            target=f"{CONTAINER_PROJECT_DIR}/scripts",
+            type="bind",
+            read_only=True,
+        ),
     ]
 
 
@@ -108,9 +121,9 @@ def nyc_taxi_integrity_check():
     trigger_full_reload = TriggerDagRunOperator(
         task_id="trigger_full_reload",
         trigger_dag_id="nyc_taxi_full_reload",
-        wait_for_completion=True,   # cho full reload chay xong roi moi done
-        poke_interval=60,           # check moi 60s
-        reset_dag_run=True,         # cho phep re-trigger neu da co run truoc
+        wait_for_completion=True,  # cho full reload chay xong roi moi done
+        poke_interval=60,  # check moi 60s
+        reset_dag_run=True,  # cho phep re-trigger neu da co run truoc
         allowed_states=["success"],
         failed_states=["failed"],
     )
@@ -120,4 +133,3 @@ def nyc_taxi_integrity_check():
 
 
 nyc_taxi_integrity_check()
-

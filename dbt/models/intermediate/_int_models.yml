@@ -9,6 +9,10 @@ models:
         tests:
           - not_null
           - unique
+      - name: source_month
+        description: 'Source batch month carried from stg_trip for incremental marts'
+        tests:
+          - not_null
       - name: passenger_count
         description: 'Number of passengers'
         tests:

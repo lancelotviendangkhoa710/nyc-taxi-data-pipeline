@@ -9,6 +9,10 @@ models:
         tests:
           - not_null
           - unique
+      - name: source_month
+        description: 'Source batch month used for incremental replacement'
+        tests:
+          - not_null
       - name: vendor_name
         description: 'Vendor name (Yellow, Green)'
         tests:
@@ -77,14 +81,22 @@ models:
         description: 'Average trip distance in miles'
 
   - name: fct_vendor_daily_metrics
-    description: 'Daily vendor metrics table with aggregated statistics'
+    description: 'Daily vendor metrics at one row per vendor and trip date'
     columns:
+      - name: source_month
+        description: 'Latest source batch month contributing to this daily metric'
+        tests:
+          - not_null
       - name: vendor_name
         description: 'Vendor name'
         tests:
           - not_null
+      - name: trip_date
+        description: 'Pickup date; together with vendor_name defines the fact grain'
+        tests:
+          - not_null
       - name: total_trips
-        description: 'Total number of trips for vendor'
+        description: 'Number of trips for the vendor and trip date'
         tests:
           - not_null
       - name: average_fare
@@ -95,7 +107,9 @@ models:
         description: 'Total revenue for vendor'
         tests:
           - not_null
-      - name: metric_date
-        description: 'Date of metric calculation'
-        tests:
-          - not_null
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns:
+              - vendor_name
+              - trip_date

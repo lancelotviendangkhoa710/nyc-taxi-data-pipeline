@@ -1,9 +1,3 @@
-"""
-scripts/reset_redshift_noconfirm.py
--------------------------------
-Xoa table yellow_taxi_raw tren Redshift (Khong xac nhan)
-"""
-
 import os
 import sys
 from pathlib import Path
@@ -11,12 +5,11 @@ from pathlib import Path
 ROOT_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT_DIR))
 
-from dotenv import load_dotenv
-load_dotenv(ROOT_DIR / ".env")
-
 import redshift_connector
 
-REDSHIFT_HOST = os.getenv("REDSHIFT_HOST", "redshift-cluster-1.xxxx.us-east-1.redshift.amazonaws.com")
+REDSHIFT_HOST = os.getenv(
+    "REDSHIFT_HOST", "redshift-cluster-1.xxxx.us-east-1.redshift.amazonaws.com"
+)
 REDSHIFT_PORT = int(os.getenv("REDSHIFT_PORT", "5439"))
 REDSHIFT_DB = os.getenv("REDSHIFT_DB", "dev")
 REDSHIFT_USER = os.getenv("REDSHIFT_USER", "awsuser")
@@ -24,11 +17,11 @@ REDSHIFT_PASSWORD = os.getenv("REDSHIFT_PASSWORD", "Password123")
 
 
 def reset_redshift() -> None:
-    print(f"\n{'='*60}")
-    print(f"  REDSHIFT FULL RESET (non-interactive)")
+    print(f"\n{'=' * 60}")
+    print("  REDSHIFT FULL RESET (non-interactive)")
     print(f"  host : {REDSHIFT_HOST}")
     print(f"  db   : {REDSHIFT_DB}")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
     try:
         conn = redshift_connector.connect(
@@ -36,7 +29,7 @@ def reset_redshift() -> None:
             port=REDSHIFT_PORT,
             database=REDSHIFT_DB,
             user=REDSHIFT_USER,
-            password=REDSHIFT_PASSWORD
+            password=REDSHIFT_PASSWORD,
         )
     except Exception as e:
         print(f"[ERROR] Khong the ket noi toi Redshift: {e}")

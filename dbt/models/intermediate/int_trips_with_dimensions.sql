@@ -19,6 +19,7 @@ stg_time as (
 )
 
 select
+    t.source_month,
     t.trip_id,
     t.passenger_count,
     t.trip_distance,

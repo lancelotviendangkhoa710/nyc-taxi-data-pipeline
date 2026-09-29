@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 import os
@@ -174,9 +172,13 @@ def nyc_taxi_etl_pipeline() -> None:
         if not PROJECT_ROOT:
             raise AirflowFailException("ETL blocked: NYC_TAXI_PROJECT_ROOT is not configured.")
 
-        is_absolute_host_path = Path(PROJECT_ROOT).is_absolute() or PureWindowsPath(PROJECT_ROOT).is_absolute()
+        is_absolute_host_path = (
+            Path(PROJECT_ROOT).is_absolute() or PureWindowsPath(PROJECT_ROOT).is_absolute()
+        )
         if not is_absolute_host_path:
-            raise AirflowFailException("ETL blocked: NYC_TAXI_PROJECT_ROOT must be an absolute host path.")
+            raise AirflowFailException(
+                "ETL blocked: NYC_TAXI_PROJECT_ROOT must be an absolute host path."
+            )
 
         raw_data_dir = AIRFLOW_DATA_DIR / "raw" / "yellow"
         metadata_file = AIRFLOW_DATA_DIR / "metadata" / "etl_metadata.json"
@@ -277,7 +279,16 @@ def nyc_taxi_etl_pipeline() -> None:
     )
 
     configuration_valid = validate_runtime_configuration()
-    configuration_valid >> run_spark_etl >> dbt_debug >> dbt_deps >> dbt_seed >> dbt_run >> dbt_test >> finalize_verified_batches
+    (
+        configuration_valid
+        >> run_spark_etl
+        >> dbt_debug
+        >> dbt_deps
+        >> dbt_seed
+        >> dbt_run
+        >> dbt_test
+        >> finalize_verified_batches
+    )
 
 
 nyc_taxi_etl_pipeline()

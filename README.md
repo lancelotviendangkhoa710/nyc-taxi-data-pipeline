@@ -1,214 +1,230 @@
-﻿# NYC Taxi Data Engineering Pipeline
+<div align="center">
 
-An end-to-end batch ETLT pipeline for NYC TLC Yellow Taxi trip data, transforming raw Parquet files into a BigQuery star schema ready for BI analytics.
+# NYC Taxi Data Engineering Pipeline
 
-![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
-![Apache Spark](https://img.shields.io/badge/Apache%20Spark-3.5.0-E25A1C?logo=apachespark&logoColor=white)
-![BigQuery](https://img.shields.io/badge/BigQuery-GCP-4285F4?logo=googlecloud&logoColor=white)
-![dbt](https://img.shields.io/badge/dbt-1.8.0-FF694B?logo=dbt&logoColor=white)
-![Airflow](https://img.shields.io/badge/Airflow-2.10.5-017CEE?logo=apacheairflow&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-26.x-2496ED?logo=docker&logoColor=white)
-![AWS EC2](https://img.shields.io/badge/AWS%20EC2-Amazon%20Linux-FF9900?logo=amazonaws&logoColor=white)
-![GitHub Actions](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-2088FF?logo=githubactions&logoColor=white)
+### Idempotent batch ETLT for NYC TLC Yellow Taxi data — Spark cleaning, S3 staging, Redshift warehousing, and dbt analytics marts.
 
----
+[![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](pyproject.toml)
+[![Apache Spark](https://img.shields.io/badge/Apache%20Spark-3.5.0-E25A1C?logo=apachespark&logoColor=white)](spark/)
+[![Amazon S3](https://img.shields.io/badge/Amazon%20S3-Staging-569A31?logo=amazons3&logoColor=white)](spark/etl/load_redshift.py)
+[![Amazon Redshift](https://img.shields.io/badge/Amazon%20Redshift-Warehouse-232F3E?logo=amazonredshift&logoColor=white)](dbt/profiles.yml)
+[![dbt](https://img.shields.io/badge/dbt-dbt--redshift-FF694B?logo=dbt&logoColor=white)](dbt/)
+[![Apache Airflow](https://img.shields.io/badge/Apache%20Airflow-2.10.5-017CEE?logo=apacheairflow&logoColor=white)](airflow/dags/nyc_taxi_etl_pipeline.py)
+[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](infrastructure/docker/)
+[![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-CI%2FCD-2088FF?logo=githubactions&logoColor=white)](.github/workflows/ci.yml)
 
-## 📌 Project Overview
+[Architecture](#architecture) · [Pipeline](#pipeline-data-flow) · [Data quality](#data-quality) · [Quick start](#quick-start)
 
-Processes 16 months (2025-05 to present) of NYC TLC Yellow Taxi trip records through a multi-stage ETLT batch pipeline. The pipeline is designed around idempotency, ensuring reliable reruns without data duplication.
-
-**ETLT Architecture:**
-- **T1 (Spark)** — File-level operations: schema enforcement, type casting, null filling, and deduplication. No business logic.
-- **T2 (dbt in BigQuery)** — Warehouse-level operations: outlier filtering, business metric derivation (`trip_duration_min`, `tip_ratio`), and building the final dimensional star schema.
+</div>
 
 ---
 
-## 🎯 Key Achievements
+## At a glance
 
-- **Automated CI/CD Deployment:** Implemented automated deployment to a single-node AWS EC2 via GitHub Actions, eliminating manual SSH tasks while keeping infrastructure costs minimal.
-- **Idempotent Data Processing:** Developed a custom JSON metadata tracker to manage file states (`fetched`, `processed`, `bq_loaded`, `dbt_tested`), allowing safe pipeline recovery and resumability.
-- **Infrastructure Mastery:** Deployed the complete stack on AWS EC2 (Amazon Linux 2023), configuring Docker daemon permissions (using `setfacl` for Airflow socket access) and managing secure SSH access with Elastic IPs.
-- **Data Quality Enforcement:** Integrated `dbt test` to proactively catch data anomalies (e.g., negative fare amounts) and implemented SQL-level outlier filtering to prevent pipeline failures from anomalous records.
-- **Clear Separation of Concerns:** Kept Spark focused on heavy lifting (data cleaning) and let dbt handle SQL-based business logic, making the pipeline highly maintainable.
+This repository ingests monthly **NYC TLC Yellow Taxi** Parquet files, validates and standardizes them with PySpark, stages processed batches in Amazon S3, and loads them into Amazon Redshift. dbt then builds staging, intermediate, and mart-layer models for BI consumption. Apache Airflow coordinates Spark, dbt, tests, and batch finalization in Docker containers.
 
----
+The pipeline is deliberately batch-oriented. A persistent JSON manifest tracks each source file, while Redshift reloads a source month by deleting that month's raw records before `COPY`.
 
-## 🏗️ Architecture
+## What makes this more than a basic ETL job?
 
-![Architecture Diagram](docs/image/architects.jpg)
+| Engineering concern | Implementation in this repository |
+| --- | --- |
+| Safe reruns | `ETLMetadata` records file states; Redshift deletes an existing `source_month` before `COPY`ing its replacement batch. |
+| Separation of transformations | Spark T1 performs file-level validation and normalization; dbt T2 creates keys, metrics, dimensional joins, and marts. |
+| Data quality | Spark checks required columns and empty inputs. dbt declares uniqueness, null, accepted-value, range, and expression tests. |
+| Warehouse loading | Processed Parquet is uploaded to S3, then loaded into `yellow_taxi_raw` through Redshift `COPY ... FORMAT AS PARQUET`. |
+| Orchestration | Airflow runs Spark, `dbt debug`, dependencies, seeds, models, tests, then finalization in order. |
+| Repeatable runtime | Dedicated Spark and dbt Docker images; Airflow uses `DockerOperator` to launch pipeline tasks. |
+| Delivery checks | GitHub Actions runs Python tests, Ruff checks/format validation, and `dbt parse`; a separate workflow deploys to EC2 over SSH. |
 
-```
-[NYC TLC - Public HTTP]
-        |
-[fetch_taxi_data.py]  ->  data/raw/yellow/
-        |
-[Apache Spark 3.5.0 -- T1 Transform]
-  standardize_data_types() | handle_null_values() | remove_duplicates()
-        |
-[BigQuery -- nyc_taxi_raw.yellow_taxi_raw]
-        |
-[dbt -- T2 Transform]
-  staging -> intermediate -> marts
-        |
-[Power BI Dashboard]
-```
+## Architecture
 
----
+```mermaid
+flowchart LR
+    TLC[NYC TLC<br/>Yellow Taxi Parquet] --> INGEST[Python ingestion<br/>fetch_taxi_data.py]
+    INGEST --> RAW[Local raw staging]
+    RAW --> SPARK[PySpark T1<br/>validate · cast · fill nulls · deduplicate]
+    SPARK --> PARQUET[Processed Parquet<br/>source_month batch]
+    PARQUET --> S3[Amazon S3<br/>silver/yellow_taxi/source_month=YYYY-MM]
+    S3 --> COPY[Redshift COPY]
+    COPY --> RAW_TABLE[(Redshift<br/>yellow_taxi_raw)]
+    RAW_TABLE --> DBT[dbt T2]
+    DBT --> STG[staging]
+    STG --> INT[intermediate]
+    INT --> MARTS[marts]
+    MARTS --> BI[Power BI]
 
-## ⚙️ Tech Stack
-
-| Component | Technology | Purpose |
-| :--- | :--- | :--- |
-| **Orchestration** | Apache Airflow `2.10.5` | Manage DAGs and scheduling |
-| **Compute / T1** | PySpark `3.5.0` | Distributed data cleaning |
-| **Storage (Cloud)** | Google BigQuery | Cloud Data Warehouse |
-| **Transformation / T2** | dbt `1.8.x` | SQL transformation layer |
-| **Infrastructure** | AWS EC2 (Amazon Linux) | Host server (Single-node) |
-| **Containerization**| Docker & Docker Compose | Isolate Airflow, Spark, and dbt environments |
-| **CI/CD** | GitHub Actions | Automated Linting, dbt parsing, and EC2 deployment |
-
----
-
-## 📁 Project Structure
-
-```
-NYC_Taxi_Project/
-+-- spark/
-|   +-- config.py                  # Paths, Spark/BQ config, SELECTED_COLUMNS
-|   +-- etl/
-|       +-- fetch_taxi_data.py     # Download raw Parquet from NYC TLC
-|       +-- extract.py             # Spark read + column pruning
-|       +-- validate.py            # Schema & empty-frame checks
-|       +-- transform.py           # T1: standardize, null-fill, dedup, pickup_date
-|       +-- load.py                # coalesce(1) -> local Parquet
-|       +-- load_bigquery.py       # Upload Parquet -> BigQuery
-|       +-- metadata.py            # Per-file status tracking
-|       +-- pipeline.py            # Orchestrates full ETLT flow
-|       +-- main.py
-+-- dbt/
-|   +-- seeds/taxi_zone_lookup.csv
-|   +-- models/
-|       +-- staging/               # stg_trip, stg_vendor, stg_payment, stg_rate, stg_location, stg_time
-|       +-- intermediate/          # int_trips_with_dimensions, int_trip_metrics_*
-|       +-- marts/                 # fct_trip_summary, fct_vendor_daily_metrics, mart_revenue_by_zone_hour
-+-- infrastructure/docker/         # Dockerfile.spark, Dockerfile.dbt, docker-compose.yml
-+-- scripts/
-|   +-- clean_bigquery.py          # Drop all BQ tables
-|   +-- reset_metadata_status.py   # Reset ETL metadata for re-run
-+-- data/
-|   +-- raw/yellow/                # Source Parquet files
-|   +-- processed/yellow_taxi/     # source_month=YYYY-MM/ (1 file each)
-|   +-- metadata/etl_metadata.json # Pipeline state
-+-- tests/
-+-- docs/
-+-- README.md
+    AIRFLOW[Apache Airflow<br/>DockerOperator] -. orchestrates .-> SPARK
+    AIRFLOW -. orchestrates .-> DBT
+    DOCKER[Docker Compose on EC2] -. runtime .-> AIRFLOW
 ```
 
----
+<details>
+<summary><strong>Orchestrated task sequence</strong></summary>
 
-## Quick Start
+`validate_runtime_configuration` → `run_spark_etl` → `dbt_debug` → `dbt_deps` → `dbt_seed` → `dbt_run` → `dbt_test` → `finalize_verified_batches`
+
+</details>
+
+## Pipeline data flow
+
+| Stage | Component | Responsibility |
+| --- | --- | --- |
+| **1. Ingestion** | `spark/etl/fetch_taxi_data.py` | Downloads monthly `yellow_tripdata_YYYY-MM.parquet` files from the NYC TLC distribution endpoint into local raw staging. |
+| **2. T1 validation & transformation** | PySpark | Verifies required columns and non-empty input; casts selected types, fills configured null defaults, removes duplicates, and adds `pickup_date`. |
+| **3. Batch persistence** | Local Parquet + metadata | Writes processed Parquet by `source_month`; maintains a JSON manifest for fetched, processed, loaded, tested, completed, and failed states. |
+| **4. Warehouse loading** | S3 + Redshift | Uploads processed Parquet to partitioned `silver/` S3 storage; replaces the raw data for that source month before Redshift `COPY`. |
+| **5. T2 transformation** | dbt-redshift | Builds staging models, dimensional joins and aggregate intermediates, then analytical marts in Redshift. |
+| **6. Analytics** | Power BI | Intended consumer for the mart layer; dashboard work remains in progress. |
+
+## Engineering decisions
+
+- **Spark for T1:** File-level validation, casting, null defaults, and deduplication run before warehouse loading. Spark also writes Parquet with timestamp types compatible with Redshift `COPY`.
+- **S3 + Redshift:** S3 is the staging/backup boundary. Redshift loads the Parquet batches with `COPY`, avoiding row-by-row application inserts.
+- **Source-month replacement:** Every loaded batch carries `source_month`; the loader deletes that month from `yellow_taxi_raw` before reloading it. This is the warehouse-level idempotency boundary.
+- **dbt for T2:** SQL models isolate warehouse transformation from file processing. Trip-grain and daily-vendor fact models use incremental `delete+insert`; each normal run deletes and rebuilds the latest `source_month`, while historical backfills use `--full-refresh`.
+- **Airflow + Docker:** Airflow defines dependencies and launches isolated Spark/dbt task containers. Docker provides the same containerized runtime for local orchestration and the EC2 deployment target.
+- **GitHub Actions:** CI validates Python code and dbt project parsing. CD rebuilds Docker images and restarts Airflow services on EC2 after deployment.
+
+## Data model
+
+The dbt project materializes a cleaned trip model, dimensions for vendor/location/time/payment/rate, enrichment/aggregation models, and three current marts: `fct_trip_summary`, `fct_vendor_daily_metrics`, and `mart_revenue_by_zone_hour`.
+
+```mermaid
+erDiagram
+    YELLOW_TAXI_RAW ||--o{ STG_TRIP : source
+    STG_VENDOR ||--o{ INT_TRIPS_WITH_DIMENSIONS : vendor_key
+    STG_LOCATION ||--o{ INT_TRIPS_WITH_DIMENSIONS : location_key
+    STG_TIME ||--o{ INT_TRIPS_WITH_DIMENSIONS : time_key
+    STG_TRIP ||--o{ INT_TRIPS_WITH_DIMENSIONS : trip
+    INT_TRIPS_WITH_DIMENSIONS ||--|| FCT_TRIP_SUMMARY : summarizes
+    STG_TRIP ||--|| FCT_VENDOR_DAILY_METRICS : aggregates
+    STG_TRIP ||--|| MART_REVENUE_BY_ZONE_HOUR : aggregates
+    STG_LOCATION ||--|| MART_REVENUE_BY_ZONE_HOUR : enriches
+    STG_TIME ||--|| MART_REVENUE_BY_ZONE_HOUR : enriches
+```
+
+## Data quality
+
+**Before load — Spark**
+
+- Required-column validation and empty-dataframe rejection.
+- Explicit casts for timestamps, numeric measures, and key fields.
+- Default values for configured nullable fields.
+- Whole-row deduplication.
+
+**In the warehouse — dbt**
+
+- Source freshness thresholds on `yellow_taxi_raw`, using `pickup_date`.
+- `unique` and `not_null` tests on trip and dimension keys.
+- Accepted-value checks for vendor keys.
+- Range/expression checks for fares, distance, trip duration, pickup dates, totals, and time-of-day values.
+- `stg_trip` derives a SHA-256 trip key, retains one row per key, and filters invalid tip ratios.
+
+## Infrastructure & deployment
+
+```mermaid
+flowchart LR
+    DEV[Git push to main] --> CI[GitHub Actions CI<br/>pytest · Ruff · dbt parse]
+    DEV --> CD[GitHub Actions CD<br/>SSH deployment]
+    CD --> EC2[AWS EC2]
+    EC2 --> COMPOSE[Docker Compose]
+    COMPOSE --> AF[Airflow webserver + scheduler]
+    AF --> TASKS[Spark and dbt task containers]
+    TASKS --> AWS[AWS S3 + Redshift]
+```
+
+The Airflow compose configuration uses `LocalExecutor` with PostgreSQL metadata storage. Optional SMTP environment variables enable task-failure email alerts. On EC2, AWS credentials can be supplied through the instance metadata service instead of static keys.
+
+## Tech stack
+
+| Area | Technology | Role |
+| --- | --- | --- |
+| Language | Python 3.12 | Ingestion, Spark ETL, utilities |
+| Orchestration | Apache Airflow 2.10.5 | DAG scheduling and task dependency management |
+| Compute | PySpark 3.5.0 | T1 validation and file-level transformations |
+| Storage | Amazon S3 | Processed-Parquet staging and backup |
+| Warehouse | Amazon Redshift | Raw table and dbt model storage |
+| Transformation | dbt-redshift | T2 SQL models, tests, seeds |
+| Infrastructure | Docker Compose, AWS EC2 | Container runtime and deployment host |
+| CI/CD | GitHub Actions | Tests, linting, dbt parsing, EC2 deployment |
+| BI | Power BI | Planned mart-layer consumption |
+
+## Quick start
 
 ### Prerequisites
 
-- Python 3.12+, Java 21, Docker 26+
-- GCP Service Account with BigQuery write permission
-- Place `gcp_service_account.json` in project root
+- Python 3.12, Docker Desktop/Engine, and Docker Compose.
+- An AWS S3 bucket, Amazon Redshift connection, and a Redshift IAM role permitted to read the bucket.
+- AWS credentials for local execution. On EC2, leave both static AWS key variables unset to use instance metadata credentials.
 
-### 1. Clone & Setup
+### 1. Local Python setup
 
-```bash
+```powershell
 git clone https://github.com/lancelotviendangkhoa710/nyc-taxi-de-project.git
 cd nyc-taxi-de-project
-python -m venv .venv && .venv\Scripts\activate
-pip install -e .
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -e ".[dev]"
 ```
 
-### 2. Configure Environment
+### 2. Environment configuration
 
-```bash
-cp .env.example .env
-# Set GCP_PROJECT_ID, GCP_DATASET_RAW, and GCP_KEYFILE_PATH. Keep .env and the key file local.
+```powershell
+Copy-Item .env.example .env
 ```
 
-### 3. Fetch Raw Data
+Set `AWS_REGION`, `S3_BUCKET`, `REDSHIFT_HOST`, `REDSHIFT_PORT`, `REDSHIFT_DB`, `REDSHIFT_USER`, `REDSHIFT_PASSWORD`, `REDSHIFT_IAM_ROLE`, and `NYC_TAXI_PROJECT_ROOT` in `.env`. Do not commit `.env` or credentials.
 
-```bash
+### 3. Fetch source data
+
+```powershell
 python -m spark.etl.fetch_taxi_data
 ```
 
-### 4. Run ETL Pipeline (Docker)
+### 4. Build images and start Airflow
 
-```bash
-cd infrastructure/docker
-docker compose -f docker-compose.yml build spark-etl
-
-# One batch at a time (picks next unprocessed file)
-docker compose -f docker-compose.yml run --rm spark-etl
+```powershell
+docker compose -f infrastructure/docker/docker-compose.yml build
+docker compose -f infrastructure/docker/docker-compose.airflow.yml up airflow-init
+docker compose -f infrastructure/docker/docker-compose.airflow.yml up -d
 ```
 
-## Roadmap & Scalability Considerations
+Open `http://localhost:8080`, enable `nyc_taxi_etl_pipeline`, then trigger it from the Airflow UI. The DAG validates the runtime, executes Spark, runs dbt, runs dbt tests, and finalizes verified batches.
 
-This architecture is deliberately designed for small-to-medium batch processing (~1GB/year). If data volume scales to **1TB+/day**, the following architectural evolution is required to avoid bottlenecking and over-engineering penalties:
+### 5. Run dbt directly (optional)
 
-| Component | Current (Portfolio Scale) | Target (1TB+/day Scale) | Reason |
-| :--- | :--- | :--- | :--- |
-| **Storage** | Local disk (`/data`) on EC2 | Cloud Object Storage (GCS/S3) | Local disk will fill up. Object storage offers infinite scaling and decoupling. |
-| **Compute** | Single-node Spark inside Docker | Dataproc / EMR Cluster | Single container RAM/CPU limits will OOM (Out of Memory). Need distributed worker nodes. |
-| **Orchestration** | Single EC2 Airflow LocalExecutor | Cloud Composer / MWAA | Local Airflow scheduler cannot handle hundreds of concurrent DAGs. |
-| **Data Load** | Pandas/BQ SDK insert | BigQuery Load Jobs from GCS | Direct API inserts at 1TB scale are extremely slow and expensive. Loading from GCS buckets via native BQ mechanisms is heavily optimized. |
-
-<!-- CD Workflow Test Comment -->
-
----
-
-### 5. Run dbt
-
-```bash
-docker compose -f docker-compose.yml run --rm dbt
-# or locally:
-cd dbt && dbt run && dbt test
+```powershell
+cd dbt
+dbt deps
+dbt debug
+dbt seed
+dbt run
+dbt test
 ```
 
-### 6. Utility Scripts
+## Project status
 
-```bash
-# Full BQ reset
-python scripts/clean_bigquery.py
+| Component | State |
+| --- | --- |
+| NYC TLC ingestion | Complete |
+| Spark T1 validation and normalization | Complete |
+| S3 staging and Redshift `COPY` loading | Complete |
+| dbt staging / intermediate / mart layers | Implemented |
+| Airflow orchestration | Implemented |
+| Dockerized Spark, dbt, and Airflow runtime | Implemented |
+| GitHub Actions CI/CD workflows | Implemented |
+| Power BI dashboard | In progress |
 
-# Reset metadata to re-process all files
-python scripts/reset_metadata_status.py
-```
+## Future improvements
 
----
-
-## Performance
-
-| Batch size | Spark T1 | BQ upload | Total/file |
-| :--- | :---: | :---: | :---: |
-| ~80 MB/month | ~30s | ~10-15s | **~1.5 min** |
-
-Use the reproducible Spark benchmark harness in `spark/benchmark/etl_benchmark.py`. Run every configuration at least three times and report median duration before claiming an improvement. Current local output uses one Parquet file per monthly batch to reduce Python SDK BigQuery load-job overhead; it is deliberately limited to small batches and needs a multi-file/cloud-storage strategy as volume grows.
-
----
-
-## Project Status
-
-| Component | Status |
-| :--- | :---: |
-| Data fetch (2025-05 to 2026-05) | Done |
-| Spark ETL T1 (clean & standardize) | Done |
-| BigQuery staging load | Done |
-| dbt T2 staging / intermediate / marts | Done |
-| Docker Compose (Spark + dbt) | Done |
-| GitHub Actions (Python unit tests + dbt parse) | Done |
-| Power BI Dashboards | Inprogress |
-| Apache Airflow Orchestration | Done |
-
----
+- Add a current Redshift/S3 architecture visual and Power BI dashboard screenshots when available.
+- Replace remaining legacy BigQuery references in non-README documentation and Docker Compose comments/configuration.
+- Extend automated integration testing against an AWS test environment.
 
 ## References
 
 - [NYC TLC Trip Record Data](https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page)
-- [Apache Spark Documentation](https://spark.apache.org/docs/latest/)
-- [dbt Documentation](https://docs.getdbt.com/)
-- [Google BigQuery Documentation](https://cloud.google.com/bigquery/docs)
+- [Apache Spark documentation](https://spark.apache.org/docs/latest/)
+- [dbt documentation](https://docs.getdbt.com/)
+- [Amazon Redshift COPY documentation](https://docs.aws.amazon.com/redshift/latest/dg/r_COPY.html)

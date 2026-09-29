@@ -4,6 +4,7 @@
 ## 1. Kết nối SSH
 
 ssh -i "D:\NYC_Taxi_Project\airflow-de-key.pem" ec2-user@3.1.224.141
+ssh -i "D:\NYC_Taxi_Project\airflow-de-key.pem" ec2-user@3.1.224.141
 `http://3.1.224.141:8080`.
 
 ## 2. Quản lý Code trên EC2

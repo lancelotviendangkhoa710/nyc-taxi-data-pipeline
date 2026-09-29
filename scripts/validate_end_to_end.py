@@ -6,7 +6,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-
 ROOT_DIR = Path(__file__).resolve().parents[1]
 DEFAULT_COMPOSE_FILE = ROOT_DIR / "infrastructure" / "docker" / "docker-compose.yml"
 

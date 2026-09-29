@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -13,38 +14,40 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 # ─────────────────────────────────────────
 # 2. DATA PATHS
 # ─────────────────────────────────────────
-DATA_DIR       = ROOT_DIR / "data"
-RAW_DIR        = DATA_DIR / "raw/yellow"
-PROCESSED_DIR  = DATA_DIR / "processed"
-METADATA_DIR   = DATA_DIR / "metadata"
+DATA_DIR = ROOT_DIR / "data"
+RAW_DIR = DATA_DIR / "raw/yellow"
+PROCESSED_DIR = DATA_DIR / "processed"
+METADATA_DIR = DATA_DIR / "metadata"
 ETL_LOCAL_RETENTION_DAYS = int(os.getenv("ETL_LOCAL_RETENTION_DAYS", "7"))
 
 # ─────────────────────────────────────────
 # 3. JAVA & HADOOP (Windows)
 # ─────────────────────────────────────────
-JAVA_HOME    = r"C:\Program Files\Eclipse Adoptium\jdk-21.0.11.10-hotspot"
-HADOOP_HOME  = str(ROOT_DIR / "infrastructure" / "hadoop")
+JAVA_HOME = r"C:\Program Files\Eclipse Adoptium\jdk-21.0.11.10-hotspot"
+HADOOP_HOME = str(ROOT_DIR / "infrastructure" / "hadoop")
+
 
 def setup_java_env():
     """
     Cấu hình biến môi trường Java/Hadoop cho Spark trên Windows.
     """
-    os.environ["JAVA_HOME"]   = JAVA_HOME
+    os.environ["JAVA_HOME"] = JAVA_HOME
     os.environ["HADOOP_HOME"] = HADOOP_HOME
-    java_bin    = os.path.join(JAVA_HOME, "bin")
-    hadoop_bin  = os.path.join(HADOOP_HOME, "bin")
+    java_bin = os.path.join(JAVA_HOME, "bin")
+    hadoop_bin = os.path.join(HADOOP_HOME, "bin")
     current_path = os.environ.get("PATH", "")
     if java_bin not in current_path:
         os.environ["PATH"] = current_path + os.pathsep + java_bin
     if hadoop_bin not in current_path:
         os.environ["PATH"] = os.environ["PATH"] + os.pathsep + hadoop_bin
 
+
 # ─────────────────────────────────────────
 # 4. SPARK CONFIGURATION
 # ─────────────────────────────────────────
-SPARK_APP_NAME   = "nyc-taxi"
-SPARK_MASTER     = "local[*]"
-SPARK_LOG_LEVEL  = "WARN"
+SPARK_APP_NAME = "nyc-taxi"
+SPARK_MASTER = "local[*]"
+SPARK_LOG_LEVEL = "WARN"
 
 SPARK_CONFIGS = {
     "spark.sql.shuffle.partitions": "8",
@@ -52,9 +55,13 @@ SPARK_CONFIGS = {
         int(
             os.getenv(
                 "ETL_TARGET_FILE_SIZE_MB",
-                "512" if os.getenv("ETL_PARTITION_PROFILE", "standard").lower() == "heavy" else "256",
+                "512"
+                if os.getenv("ETL_PARTITION_PROFILE", "standard").lower() == "heavy"
+                else "256",
             )
-        ) * 1024 * 1024
+        )
+        * 1024
+        * 1024
     ),
     "spark.driver.memory": "4g",
     "spark.sql.adaptive.enabled": "true",
@@ -64,7 +71,7 @@ SPARK_CONFIGS = {
 # 6. FILE PATTERNS
 # ─────────────────────────────────────────
 
-YELLOW_TAXI_PATTERN  = "yellow_tripdata_*.parquet"
+YELLOW_TAXI_PATTERN = "yellow_tripdata_*.parquet"
 
 # ─────────────────────────────────────────
 # 7. ETL SETTINGS
@@ -72,9 +79,9 @@ YELLOW_TAXI_PATTERN  = "yellow_tripdata_*.parquet"
 # Số partitions khi ghi ra file
 ETL_PARTITION_PROFILE = os.getenv("ETL_PARTITION_PROFILE", "standard").lower()
 _DEFAULT_TARGET_FILE_SIZE_MB = 512 if ETL_PARTITION_PROFILE == "heavy" else 256
-TARGET_FILE_SIZE_BYTES = int(
-    os.getenv("ETL_TARGET_FILE_SIZE_MB", str(_DEFAULT_TARGET_FILE_SIZE_MB))
-) * 1024 * 1024
+TARGET_FILE_SIZE_BYTES = (
+    int(os.getenv("ETL_TARGET_FILE_SIZE_MB", str(_DEFAULT_TARGET_FILE_SIZE_MB))) * 1024 * 1024
+)
 MIN_WRITE_PARTITIONS = int(os.getenv("ETL_MIN_WRITE_PARTITIONS", "1"))
 MAX_WRITE_PARTITIONS = int(os.getenv("ETL_MAX_WRITE_PARTITIONS", "2000"))
 
@@ -82,8 +89,8 @@ MAX_WRITE_PARTITIONS = int(os.getenv("ETL_MAX_WRITE_PARTITIONS", "2000"))
 # ─────────────────────────────────────────
 # 8. GCP / BIGQUERY CONFIGURATION
 # ─────────────────────────────────────────
-GCP_PROJECT_ID   = os.getenv("GCP_PROJECT_ID",   "nyc-taxi-data-pipeline-507015")
-GCP_DATASET_RAW  = os.getenv("GCP_DATASET_RAW",  "nyc_taxi_raw")
+GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID", "nyc-taxi-data-pipeline-507015")
+GCP_DATASET_RAW = os.getenv("GCP_DATASET_RAW", "nyc_taxi_raw")
 
 # Tự động map path keyfile nếu chạy trên Windows host local vs Docker container
 _default_keyfile = str(ROOT_DIR / "gcp_service_account.json")
@@ -117,4 +124,3 @@ SELECTED_COLUMNS = [
     # Partition column (added by T1 transform)
     "pickup_date",
 ]
-

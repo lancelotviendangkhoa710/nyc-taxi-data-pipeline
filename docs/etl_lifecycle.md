@@ -2,7 +2,7 @@
 
 ## Mục tiêu
 
-NYC TLC thường phát hành file trễ 2–3 tháng. Pipeline dùng metadata manifest làm source of truth; `raw/` và `processed/` chỉ là staging có thể dọn sau khi BigQuery và dbt xác nhận thành công.
+NYC TLC thường phát hành file trễ 2–3 tháng. Pipeline dùng metadata manifest làm source of truth; `raw/` và `processed/` chỉ là staging có thể dọn sau khi Redshift và dbt xác nhận thành công.
 
 ## Luồng batch
 
@@ -10,12 +10,12 @@ NYC TLC thường phát hành file trễ 2–3 tháng. Pipeline dùng metadata m
 fetch → raw/yellow/yellow_tripdata_YYYY-MM.parquet
       → Spark validate/transform
       → processed/yellow_taxi/source_month=YYYY-MM/
-      → BigQuery yellow_taxi_raw
+       → S3 silver/yellow_taxi/source_month=YYYY-MM/ → Redshift yellow_taxi_raw
       → dbt run → dbt test
       → manifest completed → cleanup local
 ```
 
-`source_month` được ghi vào Parquet để nhận diện batch BigQuery. Hiện loader append batch; source-month replacement/idempotent rerun là work tuần tiếp theo, nên không được rerun batch đã load thành công.
+`source_month` được ghi vào Parquet và S3 key để nhận diện batch Redshift. Loader xóa batch cùng tháng trước `COPY`, nên rerun thay thế dữ liệu cũ mà không duplicate.
 
 ## Metadata
 
@@ -24,8 +24,8 @@ Manifest: `data/metadata/etl_metadata.json`. File này **không được cleanup
 | Status | Ý nghĩa | Retry tiếp theo |
 |---|---|---|
 | `fetched` | Raw có trên local | Spark process |
-| `processed` | Parquet batch đã ghi | BQ load, không Spark lại |
-| `bq_loaded` | BQ load thành công | Chờ dbt run/test |
+| `processed` | Parquet batch đã ghi | DWH load, không Spark lại |
+| `dwh_loaded` | Redshift load thành công | Chờ dbt run/test |
 | `dbt_tested` | dbt test thành công | Dọn khi hết retention |
 | `completed` | Raw/processed đã dọn | Skip fetch/process/load |
 | `failed` | Bước gần nhất lỗi | Retry thủ công từ batch đó |
@@ -43,7 +43,9 @@ Manifest: `data/metadata/etl_metadata.json`. File này **không được cleanup
 
 Fetcher bỏ qua source `completed`, kể cả raw local đã bị dọn. Các tháng chưa completed vẫn được kiểm tra/tải. Với TLC trễ 2–3 tháng, scheduler nên chạy monthly và look back ít nhất 4 tháng.
 
-Khi cần backfill, không xóa record manifest. Tạo lệnh force riêng để tải, process, replace BQ batch và chạy dbt cho tháng cần xử lý; lưu lịch sử reprocess trong manifest.
+Khi cần backfill, không xóa record manifest. Tạo lệnh force riêng để tải, process, replace Redshift batch và chạy dbt cho tháng cần xử lý; lưu lịch sử reprocess trong manifest.
+
+Các dbt models incremental reprocess `source_month` mới nhất trong normal run. Khi backfill một tháng cũ hơn tháng mới nhất, chạy `dbt run --full-refresh` để rebuild chính xác các facts affected. Sau lần deploy thay đổi này, chạy một lần `dbt run --full-refresh` để thêm `source_month` vào các bảng incremental hiện có.
 
 ## Vận hành Docker
 

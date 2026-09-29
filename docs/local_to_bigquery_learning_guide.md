@@ -40,8 +40,8 @@ def add(a: int, b: int) -> int:
 
 ```python
 class BigQueryLoader:
-    def load_batch(self, parquet_dir: Path, source_month: str) -> None:
-        ...
+    def load_batch(self, parquet_dir: Path, source_month: str) -> None: ...
+
 
 loader = BigQueryLoader()
 loader.load_batch(batch_dir, "2026-05")

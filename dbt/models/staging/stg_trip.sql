@@ -1,9 +1,25 @@
 -- stg_trip.sql
 -- Đọc raw data từ yellow_taxi_raw.
 -- T2 transform: filter outliers, derive metrics, chuẩn hóa surrogate keys.
+{{
+    config(
+        materialized='incremental',
+        incremental_strategy='delete+insert',
+        unique_key=['source_month', 'trip_id'],
+        on_schema_change='sync_all_columns',
+        pre_hook="{{ delete_latest_source_month() }}"
+    )
+}}
+
 with source as (
     select *
     from {{ source('warehouse', 'yellow_taxi_raw') }}
+    {% if is_incremental() %}
+    where source_month >= (
+        select coalesce(max(source_month), '0000-00')
+        from {{ this }}
+    )
+    {% endif %}
 ),
 cleaned as (
     select *
@@ -27,7 +43,8 @@ identified as (
     from cleaned
 ),
 renamed as (
-    select trip_id,
+    select source_month,
+        trip_id,
         -- Dim foreign keys
         CASE
             WHEN VendorID IN (1, 2) THEN VendorID
@@ -78,6 +95,7 @@ renamed as (
     from identified
 )
 select
+    source_month,
     trip_id,
     vendor_key,
     pickup_time_key,

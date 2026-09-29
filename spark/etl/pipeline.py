@@ -2,28 +2,29 @@ import os
 import time
 from pathlib import Path
 
-from pyspark.sql import DataFrame, functions as F
+from pyspark.sql import DataFrame
+from pyspark.sql import functions as F
+
 from spark.config import (
     RAW_DIR,
-    YELLOW_TAXI_PATTERN,
     SELECTED_COLUMNS,
     SPARK_LOG_LEVEL,
+    YELLOW_TAXI_PATTERN,
 )
-from spark.etl.extract import get_spark_session, extract_data
+from spark.etl.extract import extract_data, get_spark_session
+from spark.etl.load import load_data
 from spark.etl.metadata import ETLMetadata
-from spark.etl.validate import validate_schema, is_empty_dataframe
 from spark.etl.transform import (
     add_pickup_date,
     handle_null_values,
     remove_duplicates,
     standardize_data_types,
 )
-from spark.etl.load import load_data
+from spark.etl.validate import is_empty_dataframe, validate_schema
 from spark.utils.logger import get_logger
 
 
 class YellowTaxiETLPipeline:
-
     def __init__(self):
         self.logger = get_logger("spark.etl.pipeline")
         self.spark = None
@@ -44,11 +45,13 @@ class YellowTaxiETLPipeline:
         ]
         for stage, duration in self.stage_timings.items():
             lines.append(f"{stage:<30} | {duration:>10.3f}s")
-        lines.extend([
-            "-" * 55,
-            f"{'Total Pipeline Time':<30} | {total_seconds:>10.3f}s",
-            "=" * 55,
-        ])
+        lines.extend(
+            [
+                "-" * 55,
+                f"{'Total Pipeline Time':<30} | {total_seconds:>10.3f}s",
+                "=" * 55,
+            ]
+        )
         self.logger.info("\n".join(lines))
 
     def initialize_spark(self) -> None:
@@ -90,6 +93,7 @@ class YellowTaxiETLPipeline:
     def load_dwh(self, filename: str) -> None:
         self.logger.info("=== LOAD: local Parquet → S3 → Redshift ===")
         from spark.etl.load_redshift import RedshiftLoader
+
         RedshiftLoader().load_batch(
             self.metadata.processed_path(filename),
             self.metadata._record(filename)["source_month"],
@@ -103,7 +107,8 @@ class YellowTaxiETLPipeline:
         summary = self.metadata.summary()
         self.logger.info(
             "Metadata: %d file tổng, by_status=%s",
-            summary["total"], summary["by_status"],
+            summary["total"],
+            summary["by_status"],
         )
 
         target_file: Path | None = self.metadata.get_latest_unprocessed(
@@ -113,7 +118,8 @@ class YellowTaxiETLPipeline:
 
         if target_file is None:
             self.logger.info(
-                "Thêm file Parquet vào %s để chạy lại.", RAW_DIR,
+                "Thêm file Parquet vào %s để chạy lại.",
+                RAW_DIR,
             )
             return
 
@@ -122,10 +128,10 @@ class YellowTaxiETLPipeline:
 
         try:
             if self.metadata.status(filename) == "processed":
-                t_bq = time.perf_counter()
+                t_dwh = time.perf_counter()
                 self.load_dwh(filename)
-                self.metadata.mark_bq_loaded(filename)
-                self.stage_timings["Load DWH"] = time.perf_counter() - t_bq
+                self.metadata.mark_dwh_loaded(filename)
+                self.stage_timings["Load DWH"] = time.perf_counter() - t_dwh
                 self._log_stage_timings(time.perf_counter() - pipeline_start)
                 return
 
@@ -173,19 +179,21 @@ class YellowTaxiETLPipeline:
             t0 = time.perf_counter()
             try:
                 self.load_dwh(filename)
-                self.metadata.mark_bq_loaded(filename)
+                self.metadata.mark_dwh_loaded(filename)
                 self.stage_timings["Load DWH"] = time.perf_counter() - t0
-            except Exception as bq_err:
+            except Exception as dwh_err:
                 self.logger.warning(
                     "DWH load failed: %s\n"
                     "Data batch retained in processed/. Will retry DWH load on next run.",
-                    bq_err,
+                    dwh_err,
                 )
                 self.stage_timings["Load DWH (Failed)"] = time.perf_counter() - t0
 
             total_elapsed = time.perf_counter() - pipeline_start
             self._log_stage_timings(total_elapsed)
-            self.logger.info("=== ETL PIPELINE COMPLETED: %s (Total: %.3fs) ===", filename, total_elapsed)
+            self.logger.info(
+                "=== ETL PIPELINE COMPLETED: %s (Total: %.3fs) ===", filename, total_elapsed
+            )
 
         except Exception as e:
             self.metadata.mark_failed(filename, str(e))
@@ -196,4 +204,3 @@ class YellowTaxiETLPipeline:
                 self.logger.info("Stopping Spark Session...")
                 self.spark.stop()
                 self.logger.info("Spark Session stopped.")
-

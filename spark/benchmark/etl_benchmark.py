@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 import argparse
@@ -7,9 +5,9 @@ import csv
 import os
 import shutil
 import time
-from datetime import datetime, timezone
+from collections.abc import Iterable
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Iterable
 
 from spark.config import RAW_DIR, ROOT_DIR, SELECTED_COLUMNS, setup_java_env
 from spark.etl.transform import (
@@ -183,11 +181,13 @@ def run_case(
 
         return {
             "run_id": run_id,
-            "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+            "timestamp_utc": datetime.now(UTC).isoformat(),
             "input_start_month": start_month,
             "input_end_month": end_month,
             "requested_data_size_mb": requested_size_mb,
-            "actual_input_size_mb": round(sum(path.stat().st_size for path in file_list) / MEBIBYTE, 2),
+            "actual_input_size_mb": round(
+                sum(path.stat().st_size for path in file_list) / MEBIBYTE, 2
+            ),
             "input_files": len(file_list),
             "cpu_cores": cpu_cores,
             "host_logical_cpus": os.cpu_count() or 0,
@@ -217,8 +217,10 @@ def append_result(path: Path, result: dict[str, object]) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Benchmark NYC Taxi Spark ETL locally.")
-    parser.add_argument("--cpus", type=parse_positive_int_list, default=[ 2, 4])
-    parser.add_argument("--partitions", type=parse_positive_int_list, default=[ 4, 8,14,12,16,32])
+    parser.add_argument("--cpus", type=parse_positive_int_list, default=[2, 4])
+    parser.add_argument(
+        "--partitions", type=parse_positive_int_list, default=[4, 8, 14, 12, 16, 32]
+    )
     selection = parser.add_mutually_exclusive_group()
     selection.add_argument(
         "--data-sizes-mb",
@@ -231,7 +233,9 @@ def main() -> None:
         help="Create exact monthly batches: YYYY-MM:file_count, e.g. 2025-01:3,2025-07:6.",
     )
     parser.add_argument("--raw-dir", type=Path, default=RAW_DIR)
-    parser.add_argument("--results", type=Path, default=ROOT_DIR / "benchmarks" / "results" / "etl_benchmark.csv")
+    parser.add_argument(
+        "--results", type=Path, default=ROOT_DIR / "benchmarks" / "results" / "etl_benchmark.csv"
+    )
     parser.add_argument("--output-dir", type=Path, default=ROOT_DIR / "data" / "benchmark-output")
     args = parser.parse_args()
 
@@ -242,7 +246,9 @@ def main() -> None:
         ]
     else:
         sizes_mb = args.data_sizes_mb or [64, 128, 256]
-        batches = [("size", size_mb, select_files_for_size(args.raw_dir, size_mb)) for size_mb in sizes_mb]
+        batches = [
+            ("size", size_mb, select_files_for_size(args.raw_dir, size_mb)) for size_mb in sizes_mb
+        ]
 
     for group_start, requested_amount, files in batches:
         # ``requested_data_size_mb`` remains numeric for backward-compatible CSVs.
