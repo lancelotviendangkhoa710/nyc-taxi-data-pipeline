@@ -28,7 +28,6 @@ include = ["spark*"]
 [tool.ruff]
 line-length = 100
 target-version = "py312"
-extend-exclude = ["docs/architecture.md"]
 
 [tool.ruff.lint]
 select = [
@@ -44,8 +43,5 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["F401"]  # unused imports OK in tests
-"scripts/check_bq_integrity.py" = ["E402"]
 "scripts/check_redshift_integrity.py" = ["E402"]
-"scripts/load_bq_all.py" = ["E402"]
-"scripts/reset_bigquery_noconfirm.py" = ["E402"]
 "scripts/reset_redshift_noconfirm.py" = ["E402"]

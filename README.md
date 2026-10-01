@@ -148,7 +148,7 @@ The Airflow compose configuration uses `LocalExecutor` with PostgreSQL metadata 
 | Transformation | dbt-redshift | T2 SQL models, tests, seeds |
 | Infrastructure | Docker Compose, AWS EC2 | Container runtime and deployment host |
 | CI/CD | GitHub Actions | Tests, linting, dbt parsing, EC2 deployment |
-| BI | Power BI | Planned mart-layer consumption |
+| BI | Power BI | Published dashboard over Redshift mart-layer aggregates |
 
 ## Quick start
 
@@ -214,12 +214,11 @@ dbt test
 | Airflow orchestration | Implemented |
 | Dockerized Spark, dbt, and Airflow runtime | Implemented |
 | GitHub Actions CI/CD workflows | Implemented |
-| Power BI dashboard | In progress |
+| Power BI dashboard | Published to Power BI Service |
 
 ## Future improvements
 
-- Add a current Redshift/S3 architecture visual and Power BI dashboard screenshots when available.
-- Replace remaining legacy BigQuery references in non-README documentation and Docker Compose comments/configuration.
+- Add a Redshift/S3 architecture visual and KPI definitions.
 - Extend automated integration testing against an AWS test environment.
 
 ## References
