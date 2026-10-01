@@ -1,0 +1,3 @@
+run_id,timestamp_utc,input_start_month,input_end_month,requested_data_size_mb,actual_input_size_mb,input_files,cpu_cores,host_logical_cpus,requested_partitions,spark_default_parallelism,input_rows,output_rows,read_seconds,transform_seconds,write_seconds,total_seconds,output_size_mb
+2025-06_to_2025-06-cpu2-part4,2026-10-01T04:25:53.144270+00:00,2025-06,2025-06,70,70.14,1,2,2,4,2,4322960,4322960,21.992,41.051,21.637,84.68,112.86
+2025-06_to_2025-06-cpu2-part8,2026-10-01T04:28:55.966700+00:00,2025-06,2025-06,70,70.14,1,2,2,8,2,4322960,4322960,20.007,41.831,16.432,78.27,122.3

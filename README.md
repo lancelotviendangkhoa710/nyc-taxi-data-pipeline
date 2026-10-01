@@ -13,7 +13,7 @@
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](infrastructure/docker/)
 [![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-CI%2FCD-2088FF?logo=githubactions&logoColor=white)](.github/workflows/ci.yml)
 
-[Architecture](#architecture) · [Dashboard](#power-bi-dashboard) · [Pipeline](#pipeline-data-flow) · [Data quality](#data-quality) · [Quick start](#quick-start)
+[Architecture](#architecture) · [Dashboard](#power-bi-dashboard) · [Performance](#measured-performance) · [Pipeline](#pipeline-data-flow) · [Data quality](#data-quality) · [Quick start](#quick-start)
 
 </div>
 
@@ -77,6 +77,19 @@ flowchart LR
 ![Power BI dashboard](powerbi/dashboard.png)
 
 Power BI visualizes the Redshift mart layer, including trip volume, revenue, fares, tips, and location-based performance.
+
+## Measured performance
+
+Spark T1 was benchmarked in the deployed Docker runtime on a 2-vCPU EC2 instance with 7.6 GiB RAM. The benchmark reads one NYC TLC Yellow Taxi monthly Parquet batch, applies type standardization, null handling, whole-row deduplication, and `pickup_date`/`source_month` derivation, then writes partitioned Parquet. It does not upload to S3 or load Redshift.
+
+| Configuration | Input | Rows in / out | Read | Transform | Write | Total | Throughput |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 2 vCPU, 4 partitions | 70.14 MiB, 1 month | 4,322,960 / 4,322,960 | 21.992s | 41.051s | 21.637s | 84.680s | 51,050 rows/s |
+| 2 vCPU, 8 partitions | 70.14 MiB, 1 month | 4,322,960 / 4,322,960 | 20.007s | 41.831s | 16.432s | **78.270s** | **55,232 rows/s** |
+
+Increasing write partitions from 4 to 8 reduced end-to-end runtime by **6.410s (7.57%)**, driven by a **5.205s** reduction in Parquet write time. The output grew from 112.86 MiB to 122.30 MiB, an explicit throughput-versus-file-size trade-off. The full, reproducible EC2 result is tracked in [`evidence/spark-benchmark.csv`](evidence/spark-benchmark.csv).
+
+> Benchmark scope: Spark T1 only. Redshift `COPY`, dbt model/test durations, and Power BI query latency require separate warehouse-connected measurements and are not represented by this result.
 
 ## Pipeline data flow
 
