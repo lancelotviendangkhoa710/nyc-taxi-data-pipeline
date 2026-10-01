@@ -16,18 +16,25 @@ from spark.config import DATA_DIR
 FACT_QUERY = """
 select pickup_zone, pickup_hour, count(*) as trip_count, sum(fare_amount) as total_revenue
 from public_marts.fct_trip_summary
+where trip_date >= dateadd(month, -12, current_date)
+  and pickup_zone is not null
 group by pickup_zone, pickup_hour
 """
 MART_QUERY = """
 select zone_name, pickup_hour, sum(trip_count) as trip_count, sum(total_revenue) as total_revenue
 from public_marts.mart_revenue_by_zone_hour
+where trip_date >= dateadd(month, -12, current_date)
 group by zone_name, pickup_hour
 """
 ROW_COUNT_QUERY = """
-select 'fct_trip_summary' as relation_name, count(*) as row_count from public_marts.fct_trip_summary
+select 'fct_trip_summary' as relation_name, count(*) as row_count
+from public_marts.fct_trip_summary
+where trip_date >= dateadd(month, -12, current_date)
+  and pickup_zone is not null
 union all
 select 'mart_revenue_by_zone_hour' as relation_name, count(*) as row_count
 from public_marts.mart_revenue_by_zone_hour
+where trip_date >= dateadd(month, -12, current_date)
 """
 
 
@@ -67,6 +74,7 @@ def benchmark(output_path: Path) -> dict[str, object]:
 
     result = {
         "measured_at_utc": datetime.now(UTC).isoformat(),
+        "scope": "Last 12 months; non-null pickup zones; trip-zone-hour aggregation.",
         "queries": {
             "fact_aggregation": {
                 "source_relation": "public_marts.fct_trip_summary",

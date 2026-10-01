@@ -21,6 +21,7 @@ select
     loc.location_key                            as location_id,
     loc.zone                                    as zone_name,
     loc.borough,
+    t.date                                      as trip_date,
     t.hour                                      as pickup_hour,
     count(tr.trip_id)                           as trip_count,
     round(cast(sum(tr.fare_amount) as numeric), 2)      as total_revenue,
@@ -38,4 +39,5 @@ group by
     loc.location_key,
     loc.zone,
     loc.borough,
+    t.date,
     t.hour

@@ -44,4 +44,5 @@ def test_benchmark_writes_sanitized_result(tmp_path, monkeypatch) -> None:
 
     assert result["queries"]["fact_aggregation"]["source_rows"] == 100
     assert result["queries"]["mart_aggregation"]["source_rows"] == 24
+    assert "Last 12 months" in result["scope"]
     assert json.loads(output_path.read_text(encoding="utf-8")) == result
