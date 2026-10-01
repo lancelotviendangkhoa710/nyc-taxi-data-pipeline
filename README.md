@@ -102,6 +102,11 @@ Power BI visualizes the Redshift mart layer, including trip volume, revenue, far
 
 The dbt project materializes a cleaned trip model, dimensions for vendor/location/time/payment/rate, enrichment/aggregation models, and three current marts: `fct_trip_summary`, `fct_vendor_daily_metrics`, and `mart_revenue_by_zone_hour`.
 
+![NYC Taxi analytics data model](powerbi/data-model.png)
+
+<details>
+<summary><strong>Technical model relationships</strong></summary>
+
 ```mermaid
 erDiagram
     YELLOW_TAXI_RAW ||--o{ STG_TRIP : source
@@ -115,6 +120,8 @@ erDiagram
     STG_LOCATION ||--|| MART_REVENUE_BY_ZONE_HOUR : enriches
     STG_TIME ||--|| MART_REVENUE_BY_ZONE_HOUR : enriches
 ```
+
+</details>
 
 ## Data quality
 
@@ -135,6 +142,11 @@ erDiagram
 
 ## Infrastructure & deployment
 
+![NYC Taxi infrastructure and deployment](powerbi/infrastructure-deployment.png)
+
+<details>
+<summary><strong>Technical deployment flow</strong></summary>
+
 ```mermaid
 flowchart LR
     DEV[Git push to main] --> CI[GitHub Actions CI<br/>pytest · Ruff · dbt parse]
@@ -145,6 +157,8 @@ flowchart LR
     AF --> TASKS[Spark and dbt task containers]
     TASKS --> AWS[AWS S3 + Redshift]
 ```
+
+</details>
 
 The Airflow compose configuration uses `LocalExecutor` with PostgreSQL metadata storage. Optional SMTP environment variables enable task-failure email alerts. On EC2, AWS credentials can be supplied through the instance metadata service instead of static keys.
 
