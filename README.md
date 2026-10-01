@@ -103,7 +103,16 @@ The warehouse layer uses dbt SQL for data quality, dimensional enrichment, and B
 | BI query reduction | `mart_revenue_by_zone_hour` aggregates trips at pickup-zone/hour grain; `fct_vendor_daily_metrics` aggregates at vendor/day grain. | Power BI reads aggregate marts for zone, hour, and daily trends instead of repeatedly aggregating trip-grain data. |
 | Incremental rebuild | dbt uses `delete+insert` plus a `source_month` pre-hook. | Rebuilds the latest batch idempotently while avoiding a full historical rebuild during normal runs. |
 
-The query examples are intentionally separate from dbt models: they are read-only analysis patterns, not production relations. Query latency and `EXPLAIN` plans will be published only after warehouse-connected measurement.
+The query examples are intentionally separate from dbt models: they are read-only analysis patterns, not production relations. Run the read-only fact-versus-mart benchmark in the deployed Spark image to generate sanitized Redshift timing evidence:
+
+```bash
+docker compose -f infrastructure/docker/docker-compose.yml run --rm \
+  --entrypoint python spark-etl \
+  -m spark.benchmark.redshift_query_benchmark \
+  --output /app/data/evidence/redshift-query-benchmark.json
+```
+
+The command reads warehouse aggregates only; it performs no inserts, deletes, or DDL. Copy the JSON into `evidence/` only after reviewing it for public-safe metadata.
 
 ## Pipeline data flow
 

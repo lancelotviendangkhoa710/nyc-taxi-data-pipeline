@@ -93,20 +93,7 @@ MAX_WRITE_PARTITIONS = int(os.getenv("ETL_MAX_WRITE_PARTITIONS", "2000"))
 
 # Columns được giữ lại sau ETL
 # ─────────────────────────────────────────
-# 8. GCP / BIGQUERY CONFIGURATION
-# ─────────────────────────────────────────
-GCP_PROJECT_ID = os.getenv("GCP_PROJECT_ID", "nyc-taxi-data-pipeline-507015")
-GCP_DATASET_RAW = os.getenv("GCP_DATASET_RAW", "nyc_taxi_raw")
-
-# Tự động map path keyfile nếu chạy trên Windows host local vs Docker container
-_default_keyfile = str(ROOT_DIR / "gcp_service_account.json")
-GCP_KEYFILE_PATH = os.getenv("GCP_KEYFILE_PATH", _default_keyfile)
-if not os.path.exists(GCP_KEYFILE_PATH) and os.path.exists(_default_keyfile):
-    GCP_KEYFILE_PATH = _default_keyfile
-
-
-# ─────────────────────────────────────────
-# 9. SELECTED COLUMNS (ETL output)
+# 8. SELECTED COLUMNS (ETL output)
 # ─────────────────────────────────────────
 SELECTED_COLUMNS = [
     "VendorID",

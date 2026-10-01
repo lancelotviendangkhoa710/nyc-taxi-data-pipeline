@@ -1,5 +1,5 @@
 # ============================================================================
-# docker-compose.yml - Orchestrate Spark ETL và dbt containers (BigQuery)
+# docker-compose.yml - Orchestrate Spark ETL and dbt containers for Redshift
 # ============================================================================
 # Chạy: docker-compose -f docker-compose.yml up
 # ============================================================================
@@ -21,14 +21,10 @@ services:
       - ../../.env
 
     # Volumes - Mount thư mục từ host vào container
-    environment:
-      GCP_KEYFILE_PATH: /app/gcp_service_account.json
-
     volumes:
       - ../../data:/app/data # Data folder (read-write)
       - ../../spark:/app/spark:ro # Source code (read-only)
       - ../../infrastructure:/app/infrastructure:ro
-      - ../../gcp_service_account.json:/app/gcp_service_account.json:ro # Service Account
 
     networks:
       - nyc-taxi-net
@@ -50,16 +46,12 @@ services:
     env_file:
       - ../../.env
 
-    environment:
-      - GCP_KEYFILE_PATH=/app/gcp_service_account.json
-
     # Volumes
     volumes:
       - ../../dbt:/app/dbt # dbt project (read-write)
       - ../../data:/app/data # Manifest + cleanup raw/processed sau dbt test
       - ../../spark:/app/spark:ro # Chạy ETL finalizer sau dbt test
       - ../../infrastructure:/app/infrastructure:ro
-      - ../../gcp_service_account.json:/app/gcp_service_account.json:ro # Service Account
 
     # Connect tới docker network
     networks:

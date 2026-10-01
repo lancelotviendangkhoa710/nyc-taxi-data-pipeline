@@ -24,7 +24,7 @@ def main() -> int:
         "--compose-file",
         type=Path,
         default=DEFAULT_COMPOSE_FILE,
-        help="Path to the Docker Compose file that runs Spark ETL and dbt against BigQuery.",
+        help="Path to the Docker Compose file that runs Spark ETL and dbt against Redshift.",
     )
     parser.add_argument(
         "--keep-containers",

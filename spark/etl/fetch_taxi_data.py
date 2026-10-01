@@ -13,8 +13,12 @@ logger = get_logger(__name__)
 DATA_START_DATE = "2025-06"
 
 
-def _current_month() -> str:
-    return datetime.now().strftime("%Y-%m")
+def _latest_completed_month(now: datetime | None = None) -> str:
+    """Return the previous calendar month to avoid requesting an in-progress TLC release."""
+    now = now or datetime.now()
+    if now.month == 1:
+        return f"{now.year - 1}-12"
+    return f"{now.year}-{now.month - 1:02d}"
 
 
 def _check_needs_download(url: str, filepath) -> bool:
@@ -68,8 +72,12 @@ def _download_file(url: str, filepath) -> bool:
                 f.write(chunk)
         logger.info("Downloaded successfully: %s", filepath.name)
         return True
-    elif response.status_code == 404:
-        logger.warning("Data not yet available on server: %s (404) - skipping.", filepath.name)
+    elif response.status_code in {403, 404}:
+        logger.warning(
+            "Data not yet available on server: %s (%s) - skipping.",
+            filepath.name,
+            response.status_code,
+        )
         return False
     else:
         logger.error("Error: %s - %s", response.status_code, url)
@@ -78,7 +86,7 @@ def _download_file(url: str, filepath) -> bool:
 
 def fetch_data(start_date: str = DATA_START_DATE, end_date: str = None) -> None:
     if end_date is None:
-        end_date = _current_month()
+        end_date = _latest_completed_month()
 
     limit_start = datetime.strptime(DATA_START_DATE, "%Y-%m")
     try:
