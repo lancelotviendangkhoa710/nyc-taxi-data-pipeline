@@ -9,6 +9,8 @@ from collections.abc import Iterable
 from datetime import UTC, datetime
 from pathlib import Path
 
+from pyspark.sql import functions as F
+
 from spark.config import RAW_DIR, ROOT_DIR, SELECTED_COLUMNS, setup_java_env
 from spark.etl.transform import (
     add_pickup_date,
@@ -171,6 +173,10 @@ def run_case(
         transformed = handle_null_values(transformed)
         transformed = remove_duplicates(transformed)
         transformed = add_pickup_date(transformed)
+        transformed = transformed.withColumn(
+            "source_month",
+            F.regexp_extract(F.input_file_name(), r"yellow_tripdata_(\d{4}-\d{2})\.parquet", 1),
+        )
         transformed = transformed.select(*SELECTED_COLUMNS).repartition(partitions).cache()
         output_rows = transformed.count()
         transform_seconds = time.perf_counter() - transform_started
