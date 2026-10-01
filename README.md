@@ -13,7 +13,7 @@
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](infrastructure/docker/)
 [![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-CI%2FCD-2088FF?logo=githubactions&logoColor=white)](.github/workflows/ci.yml)
 
-[Architecture](#architecture) · [Pipeline](#pipeline-data-flow) · [Data quality](#data-quality) · [Quick start](#quick-start)
+[Architecture](#architecture) · [Dashboard](#power-bi-dashboard) · [Pipeline](#pipeline-data-flow) · [Data quality](#data-quality) · [Quick start](#quick-start)
 
 </div>
 
@@ -39,6 +39,13 @@ The pipeline is deliberately batch-oriented. A persistent JSON manifest tracks e
 
 ## Architecture
 
+![NYC Taxi data pipeline architecture](powerbi/pipeline.png)
+
+NYC TLC monthly Parquet data is validated and transformed by PySpark in Docker on EC2, staged as partitioned Parquet in S3, loaded into Redshift, modeled by dbt, and consumed in Power BI. Airflow orchestrates the batch workflow; GitHub Actions deploys it to EC2.
+
+<details>
+<summary><strong>Technical data flow</strong></summary>
+
 ```mermaid
 flowchart LR
     TLC[NYC TLC<br/>Yellow Taxi Parquet] --> INGEST[Python ingestion<br/>fetch_taxi_data.py]
@@ -59,12 +66,17 @@ flowchart LR
     DOCKER[Docker Compose on EC2] -. runtime .-> AIRFLOW
 ```
 
-<details>
 <summary><strong>Orchestrated task sequence</strong></summary>
 
 `validate_runtime_configuration` → `run_spark_etl` → `dbt_debug` → `dbt_deps` → `dbt_seed` → `dbt_run` → `dbt_test` → `finalize_verified_batches`
 
 </details>
+
+## Power BI dashboard
+
+![Power BI dashboard](powerbi/dashboard.png)
+
+Power BI visualizes the Redshift mart layer, including trip volume, revenue, fares, tips, and location-based performance.
 
 ## Pipeline data flow
 
@@ -75,7 +87,7 @@ flowchart LR
 | **3. Batch persistence** | Local Parquet + metadata | Writes processed Parquet by `source_month`; maintains a JSON manifest for fetched, processed, loaded, tested, completed, and failed states. |
 | **4. Warehouse loading** | S3 + Redshift | Uploads processed Parquet to partitioned `silver/` S3 storage; replaces the raw data for that source month before Redshift `COPY`. |
 | **5. T2 transformation** | dbt-redshift | Builds staging models, dimensional joins and aggregate intermediates, then analytical marts in Redshift. |
-| **6. Analytics** | Power BI | Intended consumer for the mart layer; dashboard work remains in progress. |
+| **6. Analytics** | Power BI | Published dashboard consuming Redshift mart-layer aggregates. |
 
 ## Engineering decisions
 
