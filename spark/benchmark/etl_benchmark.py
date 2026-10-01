@@ -9,6 +9,8 @@ from collections.abc import Iterable
 from datetime import UTC, datetime
 from pathlib import Path
 
+from py4j.protocol import Py4JError
+from pyspark import StorageLevel
 from pyspark.sql import functions as F
 
 from spark.config import RAW_DIR, ROOT_DIR, SELECTED_COLUMNS, setup_java_env
@@ -164,7 +166,7 @@ def run_case(
     started = time.perf_counter()
     try:
         read_started = time.perf_counter()
-        raw = spark.read.parquet(*(str(path) for path in file_list)).cache()
+        raw = spark.read.parquet(*(str(path) for path in file_list)).persist(StorageLevel.DISK_ONLY)
         input_rows = raw.count()
         read_seconds = time.perf_counter() - read_started
 
@@ -177,7 +179,9 @@ def run_case(
             "source_month",
             F.regexp_extract(F.input_file_name(), r"yellow_tripdata_(\d{4}-\d{2})\.parquet", 1),
         )
-        transformed = transformed.select(*SELECTED_COLUMNS).repartition(partitions).cache()
+        transformed = transformed.select(*SELECTED_COLUMNS).repartition(partitions)
+        raw.unpersist(blocking=True)
+        transformed = transformed.persist(StorageLevel.DISK_ONLY)
         output_rows = transformed.count()
         transform_seconds = time.perf_counter() - transform_started
 
@@ -208,7 +212,10 @@ def run_case(
             "output_size_mb": round(directory_size_bytes(output_path) / MEBIBYTE, 2),
         }
     finally:
-        spark.stop()
+        try:
+            spark.stop()
+        except (ConnectionRefusedError, Py4JError):
+            pass
 
 
 def append_result(path: Path, result: dict[str, object]) -> None:
