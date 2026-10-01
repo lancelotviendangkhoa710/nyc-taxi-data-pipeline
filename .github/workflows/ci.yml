@@ -40,5 +40,11 @@ jobs:
           python-version: "3.12"
       - run: pip install "dbt-redshift>=1.8.0"
       - run: dbt deps --project-dir dbt --profiles-dir dbt
-      - run: dbt parse --project-dir dbt --profiles-dir dbt --no-partial-parse
+      - name: Parse dbt project
+        env:
+          REDSHIFT_HOST: ci-parse-only.invalid
+          REDSHIFT_USER: ci_parser
+          REDSHIFT_PASSWORD: ci-parse-only-password
+          REDSHIFT_DB: dev
+        run: dbt parse --project-dir dbt --profiles-dir dbt --no-partial-parse
 

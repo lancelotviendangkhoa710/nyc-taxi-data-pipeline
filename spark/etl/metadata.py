@@ -144,7 +144,10 @@ class ETLMetadata:
 
     def get_latest_unprocessed(self, raw_dir: Path, pattern: str) -> Path | None:
         for file_path in sorted(raw_dir.glob(pattern), key=lambda path: path.name):
-            if not self.is_completed(file_path.name) and self.status(file_path.name) != "dwh_loaded":
+            if (
+                not self.is_completed(file_path.name)
+                and self.status(file_path.name) != "dwh_loaded"
+            ):
                 return file_path
         return None
 
