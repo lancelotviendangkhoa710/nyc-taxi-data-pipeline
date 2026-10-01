@@ -91,6 +91,20 @@ Increasing write partitions from 4 to 8 reduced end-to-end runtime by **6.410s (
 
 > Benchmark scope: Spark T1 only. Redshift `COPY`, dbt model/test durations, and Power BI query latency require separate warehouse-connected measurements and are not represented by this result.
 
+## SQL patterns and warehouse optimization
+
+The warehouse layer uses dbt SQL for data quality, dimensional enrichment, and BI-oriented aggregation. [`dbt/analyses/analytics_query_patterns.sql`](dbt/analyses/analytics_query_patterns.sql) contains read-only Redshift query examples for the marts.
+
+| Pattern | Implementation | Why it matters |
+| --- | --- | --- |
+| Cross-batch deduplication | `ROW_NUMBER() OVER (PARTITION BY trip_id)` in [`stg_trip`](dbt/models/staging/stg_trip.sql) retains `duplicate_rank = 1` after generating a SHA-256 trip key. | Removes duplicate logical trips beyond Spark's whole-row deduplication. |
+| Top-N within a group | `DENSE_RANK() OVER (PARTITION BY borough ORDER BY total_revenue DESC)` ranks pickup zones inside each borough. | Preserves ties while avoiding application-side ranking. |
+| Cumulative metric | `SUM(total_revenue) OVER (PARTITION BY vendor_name ORDER BY trip_date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)` produces vendor running revenue. | Computes time-series analytics in SQL. |
+| BI query reduction | `mart_revenue_by_zone_hour` aggregates trips at pickup-zone/hour grain; `fct_vendor_daily_metrics` aggregates at vendor/day grain. | Power BI reads aggregate marts for zone, hour, and daily trends instead of repeatedly aggregating trip-grain data. |
+| Incremental rebuild | dbt uses `delete+insert` plus a `source_month` pre-hook. | Rebuilds the latest batch idempotently while avoiding a full historical rebuild during normal runs. |
+
+The query examples are intentionally separate from dbt models: they are read-only analysis patterns, not production relations. Query latency and `EXPLAIN` plans will be published only after warehouse-connected measurement.
+
 ## Pipeline data flow
 
 | Stage | Component | Responsibility |
