@@ -25,12 +25,18 @@ ETL_LOCAL_RETENTION_DAYS = int(os.getenv("ETL_LOCAL_RETENTION_DAYS", "7"))
 # ─────────────────────────────────────────
 JAVA_HOME = r"C:\Program Files\Eclipse Adoptium\jdk-21.0.11.10-hotspot"
 HADOOP_HOME = str(ROOT_DIR / "infrastructure" / "hadoop")
+IS_WINDOWS = os.name == "nt"
 
 
 def setup_java_env():
     """
-    Cấu hình biến môi trường Java/Hadoop cho Spark trên Windows.
+    Configure Java and Hadoop paths for local Windows Spark only.
+
+    Docker and EC2 images provide their own Linux ``JAVA_HOME``. Overriding it
+    with the local Windows JDK path prevents PySpark from starting there.
     """
+    if not IS_WINDOWS:
+        return
     os.environ["JAVA_HOME"] = JAVA_HOME
     os.environ["HADOOP_HOME"] = HADOOP_HOME
     java_bin = os.path.join(JAVA_HOME, "bin")
